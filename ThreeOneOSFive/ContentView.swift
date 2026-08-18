@@ -132,22 +132,22 @@ struct ContentView: View {
                 // MARK: - App Principal
                 VStack(spacing: 18) {
                     
-                    // MARK: - Header
+                    // MARK: - Header Modificado con Imagen Predeterminada
                     HStack(spacing: 14) {
                         ZStack(alignment: .bottomTrailing) {
-                            Circle()
-                                .fill(accentColor.opacity(0.15))
+                            // Carga la imagen predeterminada que subiste a los Assets de tu proyecto
+                            Image("IMG_4462") // Asegúrate de que coincida con el nombre de tu archivo en Assets sin extensión
+                                .resizable()
+                                .scaledToFill()
                                 .frame(width: 46, height: 46)
+                                .clipShape(Circle())
                                 .overlay(
                                     Circle()
                                         .stroke(accentColor, lineWidth: 1.5)
                                 )
                                 .shadow(color: accentColor.opacity(0.5), radius: 6, x: 0, y: 0)
                             
-                            Text(String(usernameInput.prefix(1)).uppercased())
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(accentColor)
-                            
+                            // Punto de estado activo
                             Circle()
                                 .fill(Color.green)
                                 .frame(width: 12, height: 12)
