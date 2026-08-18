@@ -132,22 +132,32 @@ struct ContentView: View {
                 // MARK: - App Principal
                 VStack(spacing: 18) {
                     
-                    // MARK: - Header Modificado con Imagen Predeterminada
+                    // MARK: - Header Modificado con Imagen Directa
                     HStack(spacing: 14) {
                         ZStack(alignment: .bottomTrailing) {
-                            // Carga la imagen predeterminada que subiste a los Assets de tu proyecto
-                            Image("IMG_4462") // Asegúrate de que coincida con el nombre de tu archivo en Assets sin extensión
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 46, height: 46)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(accentColor, lineWidth: 1.5)
-                                )
-                                .shadow(color: accentColor.opacity(0.5), radius: 6, x: 0, y: 0)
+                            // Intenta cargar la imagen subida en la carpeta del proyecto
+                            if let uiImage = UIImage(named: "IMG_4462.jpeg") {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 46, height: 46)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle()
+                                            .stroke(accentColor, lineWidth: 1.5)
+                                    )
+                                    .shadow(color: accentColor.opacity(0.5), radius: 6, x: 0, y: 0)
+                            } else {
+                                // Respaldo estético si la imagen aún no está en la carpeta correcta
+                                Image(systemName: "person.crop.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 46, height: 46)
+                                    .foregroundColor(accentColor.opacity(0.8))
+                                    .shadow(color: accentColor.opacity(0.5), radius: 6, x: 0, y: 0)
+                            }
                             
-                            // Punto de estado activo
+                            // Punto verde de estado activo
                             Circle()
                                 .fill(Color.green)
                                 .frame(width: 12, height: 12)
@@ -274,7 +284,7 @@ struct ContentView: View {
                                                 .keyboardType(.numberPad)
                                                 .padding(.horizontal, 14)
                                                 .frame(height: 44)
-                                                .background(Color(red: 0.10, green: 0.10, blue: 0.12))
+                                                .background(Color(red: 0.10, green: 0.10, blue: 0.13))
                                                 .cornerRadius(12)
                                                 .foregroundColor(.white)
                                             
