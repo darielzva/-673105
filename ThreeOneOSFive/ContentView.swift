@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Modelo de Key Generada
 struct GeneratedKey: Identifiable, Equatable {
@@ -30,7 +31,7 @@ struct ContentView: View {
     ]
     
     // Estado del Creador de Keys (Solo Admin)
-    @State private var selectedDuration: Int = 1 // 1, 7 o 30 días
+    @State private var selectedDuration: Int = 1
     @State private var newlyGeneratedKey: String = ""
     @State private var showAdminPanel: Bool = false
     
@@ -394,8 +395,7 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Funciones de Lógica de Acceso y Gestión
-    
+    // MARK: - Lógica de Acceso y Gestión
     private func validateAndLogin() {
         let trimmedUser = usernameInput.trimmingCharacters(in: .whitespaces)
         let trimmedKey = keyInput.trimmingCharacters(in: .whitespaces)
@@ -461,7 +461,7 @@ struct ContentView: View {
     }
 }
 
-// Botón selector de duración para Admin
+// Botón selector de duración
 struct DurationButton: View {
     let title: String
     let days: Int
