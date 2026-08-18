@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 // MARK: - Modelo de Key Generada
 struct GeneratedKey: Identifiable, Equatable {
@@ -34,6 +33,7 @@ struct ContentView: View {
     @State private var selectedDuration: Int = 1
     @State private var newlyGeneratedKey: String = ""
     @State private var showAdminPanel: Bool = false
+    @State private var keyCopiedAlert: Bool = false
     
     // Estados de la App Principal
     @State private var selectedTab: String = "AIM"
@@ -84,7 +84,6 @@ struct ContentView: View {
                                 .background(Color(red: 0.09, green: 0.09, blue: 0.11))
                                 .cornerRadius(14)
                                 .foregroundColor(.white)
-                                .autocapitalization(.none)
                         }
                         
                         // Campo Key / Pass Admin
@@ -247,11 +246,11 @@ struct ContentView: View {
                                         .font(.system(size: 13, weight: .monospaced))
                                         .foregroundColor(.green)
                                     Spacer()
-                                    Button("Copiar") {
-                                        UIPasteboard.general.string = newlyGeneratedKey
+                                    Button(keyCopiedAlert ? "¡Generada!" : "Lista") {
+                                        keyCopiedAlert = true
                                     }
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.purple)
                                 }
                                 .padding(8)
                                 .background(Color.black.opacity(0.4))
@@ -428,10 +427,13 @@ struct ContentView: View {
     }
     
     private func generateNewKey() {
-        let randomCode = "KEY-" + String((0..<6).map { _ in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
+        let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        let randomString = String((0..<6).map { _ in characters.randomElement()! })
+        let randomCode = "KEY-" + randomString
         let newKey = GeneratedKey(code: randomCode, durationDays: selectedDuration, creationDate: Date())
         activeKeys.insert(newKey, at: 0)
         newlyGeneratedKey = randomCode
+        keyCopiedAlert = false
     }
     
     private func revokeKey(_ key: GeneratedKey) {
