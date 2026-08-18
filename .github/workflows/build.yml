@@ -18,23 +18,24 @@ jobs:
 
       - name: Compilar Proyecto (.app)
         run: |
-          xcodebuild -project ThreeOneOSFive.xcodeproj \
-                     -scheme ThreeOneOSFive \
-                     -sdk iphoneos \
-                     -configuration Release \
-                     CODE_SIGN_IDENTITY="" \
-                     CODE_SIGNING_REQUIRED=NO \
-                     CODE_SIGNING_ALLOWED=NO \
-                     clean build
+          xcodebuild build \
+            -project ThreeOneOSFive.xcodeproj \
+            -scheme 3105 \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Empaquetar en archivo .IPA
         run: |
           mkdir -p Payload
-          cp -r build/Release-iphoneos/ThreeOneOSFive.app Payload/
-          zip -r ThreeOneOSFive.ipa Payload
+          cp -r build/Build/Products/Release-iphoneos/*.app Payload/
+          zip -r 3105.ipa Payload
 
       - name: Subir ejecutable IPA
         uses: actions/upload-artifact@v4
         with:
           name: App-IPA
-          path: ThreeOneOSFive.ipa
+          path: 3105.ipa
