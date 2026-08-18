@@ -36,6 +36,12 @@ struct ContentView: View {
     @State private var customDaysInput: String = ""
     @State private var keyNotificationMessage: String = ""
     
+    // Estados para la inyección por archivos .3105
+    @State private var showInjectionAlert: Bool = false
+    @State private var pendingInjectionTitle: String = ""
+    @State private var pendingInjectionFileName: String = ""
+    @State private var injectionSuccessMessage: String = ""
+    
     let availableColors: [(name: String, color: Color)] = [
         ("Amarillo", Color(red: 1.0, green: 0.85, blue: 0.15)),
         ("Celeste", Color(red: 0.20, green: 0.80, blue: 1.0)),
@@ -237,7 +243,7 @@ struct ContentView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
                     
-                    // Pestañas Principales (KEYS estrictamente reservado para Admin)
+                    // Pestañas Principales
                     HStack(spacing: 10) {
                         GlowTabButton(title: "AIM", isSelected: selectedTab == "AIM", accentColor: accentColor) {
                             selectedTab = "AIM"
@@ -254,17 +260,42 @@ struct ContentView: View {
                     }
                     .padding(.horizontal, 20)
                     
+                    // Notificación flotante de inyección exitosa
+                    if !injectionSuccessMessage.isEmpty {
+                        Text(injectionSuccessMessage)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(accentColor)
+                            .cornerRadius(12)
+                            .shadow(color: accentColor.opacity(0.6), radius: 8, x: 0, y: 0)
+                            .transition(.opacity)
+                    }
+                    
                     // Contenido de la pestaña activa
                     ScrollView {
                         VStack(spacing: 14) {
                             if selectedTab == "AIM" {
-                                GlowOptionCard(title: "Aim Cabeza", iconName: "target", isSelected: selectedOption == "CABEZA", accentColor: accentColor) { selectedOption = "CABEZA" }
-                                GlowOptionCard(title: "Aim Cuello", iconName: "person.fill", isSelected: selectedOption == "CUELLO", accentColor: accentColor) { selectedOption = "CUELLO" }
-                                GlowOptionCard(title: "Aim Pecho", iconName: "scope", isSelected: selectedOption == "PECHO", accentColor: accentColor) { selectedOption = "PECHO" }
-                                GlowOptionCard(title: "Aim Drag", iconName: "hand.tap.fill", isSelected: selectedOption == "DRAG", accentColor: accentColor) { selectedOption = "DRAG" }
+                                GlowOptionCard(title: "Aim Cabeza", iconName: "target", isSelected: selectedOption == "CABEZA", accentColor: accentColor) {
+                                    triggerInjectionFlow(title: "Aim Cabeza", fileName: "aimbot_cabeza.3105", optionKey: "CABEZA")
+                                }
+                                GlowOptionCard(title: "Aim Cuello", iconName: "person.fill", isSelected: selectedOption == "CUELLO", accentColor: accentColor) {
+                                    triggerInjectionFlow(title: "Aim Cuello", fileName: "aimbot_cuello.3105", optionKey: "CUELLO")
+                                }
+                                GlowOptionCard(title: "Aim Pecho", iconName: "scope", isSelected: selectedOption == "PECHO", accentColor: accentColor) {
+                                    triggerInjectionFlow(title: "Aim Pecho", fileName: "aimbot_pecho.3105", optionKey: "PECHO")
+                                }
+                                GlowOptionCard(title: "Aim Drag", iconName: "hand.tap.fill", isSelected: selectedOption == "DRAG", accentColor: accentColor) {
+                                    triggerInjectionFlow(title: "Aim Drag", fileName: "aimbot_drag.3105", optionKey: "DRAG")
+                                }
                             } else if selectedTab == "VISUAL" {
-                                GlowOptionCard(title: "Holo Personaje", iconName: "person.crop.square.fill", isSelected: false, accentColor: accentColor) {}
-                                GlowOptionCard(title: "Holo Armas", iconName: "cube.fill", isSelected: false, accentColor: accentColor) {}
+                                GlowOptionCard(title: "Holo Personaje", iconName: "person.crop.square.fill", isSelected: false, accentColor: accentColor) {
+                                    triggerInjectionFlow(title: "Holo Personaje", fileName: "holo_personaje.3105", optionKey: "HOLO_PERS")
+                                }
+                                GlowOptionCard(title: "Holo Armas", iconName: "cube.fill", isSelected: false, accentColor: accentColor) {
+                                    triggerInjectionFlow(title: "Holo Armas", fileName: "holo_armas.3105", optionKey: "HOLO_ARMAS")
+                                }
                             } else if selectedTab == "KEYS" && isAdmin {
                                 VStack(alignment: .leading, spacing: 20) {
                                     
@@ -354,42 +385,48 @@ struct ContentView: View {
                     }
                     
                     Spacer()
-                    
-                    // Botones Inferiores de Acción
-                    if selectedTab != "KEYS" {
-                        HStack(spacing: 12) {
-                            Button(action: {}) {
-                                Text("INJECT")
-                                    .font(.system(size: 16, weight: .heavy))
-                                    .foregroundColor(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 52)
-                                    .background(accentColor)
-                                    .cornerRadius(18)
-                            }
-                            .shadow(color: accentColor.opacity(0.8), radius: 10, x: 0, y: 0)
-                            .shadow(color: accentColor.opacity(0.3), radius: 20, x: 0, y: 0)
-                            
-                            Button(action: {}) {
-                                Text("BYPASS")
-                                    .font(.system(size: 16, weight: .heavy))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 52)
-                                    .background(Color(red: 0.08, green: 0.08, blue: 0.10))
-                                    .cornerRadius(18)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 18)
-                                            .stroke(Color.cyan, lineWidth: 1.5)
-                                    )
-                            }
-                            .shadow(color: Color.cyan.opacity(0.7), radius: 8, x: 0, y: 0)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 12)
-                    }
                 }
                 .transition(.opacity)
+            }
+        }
+        // Alerta de confirmación para inyectar la ruta del archivo .3105
+        .alert(isPresented: $showInjectionAlert) {
+            Alert(
+                title: Text("Inyección de Archivo"),
+                message: Text("¿Quieres inyectar \(pendingInjectionTitle)? (Se aplicará el archivo \(pendingInjectionFileName))"),
+                primaryButton: .default(Text("Sí")) {
+                    executeFileInjection(fileName: pendingInjectionFileName, optionKey: pendingInjectionTitle)
+                },
+                secondaryButton: .cancel(Text("No"))
+            )
+        }
+    }
+    
+    // MARK: - Lógica de Inyección Automática .3105
+    private func triggerInjectionFlow(title: String, fileName: String, optionKey: String) {
+        pendingInjectionTitle = title
+        pendingInjectionFileName = fileName
+        showInjectionAlert = true
+    }
+    
+    private func executeFileInjection(fileName: String, optionKey: String) {
+        // Simulación de la copia de la ruta del archivo .3105 en el almacenamiento/dispositivo del usuario
+        let targetDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+        let destinationPath = targetDirectory?.appendingPathComponent(fileName).path ?? "/Documents/\(fileName)"
+        
+        // Simulando escritura del archivo de ruta .3105
+        let dummyRouteContent = "PATH_ROUTE_3105://inject/\(fileName)"
+        try? dummyRouteContent.write(toFile: destinationPath, atomically: true, encoding: .utf8)
+        
+        selectedOption = optionKey
+        
+        withAnimation {
+            injectionSuccessMessage = "¡Inyectado correctamente en el dispositivo!"
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            withAnimation {
+                injectionSuccessMessage = ""
             }
         }
     }
@@ -411,7 +448,6 @@ struct ContentView: View {
         
         loadKeysFromStorage()
         
-        // 1. Verificación para Administrador Exclusivo
         if cleanUsername.lowercased() == adminUsername.lowercased() {
             if cleanKey == adminPassword {
                 loginError = ""
@@ -427,7 +463,6 @@ struct ContentView: View {
             }
         }
         
-        // 2. Verificación Estricta para Usuarios / Clientes Normales
         if let matchingKey = generatedKeys.first(where: { $0.code == cleanKey }) {
             if matchingKey.isExpired {
                 loginError = "La Key ingresada ha expirado."
