@@ -234,7 +234,7 @@ struct ContentView: View {
                             if !newlyGeneratedKey.isEmpty {
                                 HStack {
                                     Text("Key: \(newlyGeneratedKey)")
-                                        .font(.system(size: 13, weight: .monospaced))
+                                        .font(.system(size: 13, weight: .regular, design: .monospaced))
                                         .foregroundColor(.green)
                                     Spacer()
                                 }
