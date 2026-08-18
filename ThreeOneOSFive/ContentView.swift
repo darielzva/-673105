@@ -1,282 +1,106 @@
 import SwiftUI
-import UIKit
 
 struct ContentView: View {
-    @Environment(\.appLanguage) private var language
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
-    @State private var tabNavigation: AppTabNavigationState
-    @AppStorage(FeatureVisibility.cleanerStorageKey) private var cleanerEnabled = true
-    @AppStorage(FeatureVisibility.wallpapersStorageKey) private var wallpapersEnabled = true
-
-    init() {
-#if targetEnvironment(simulator)
-        let arguments = ProcessInfo.processInfo.arguments
-        let initialTab: Int
-        if arguments.contains("--simulate-files-tab") {
-            initialTab = 1
-        } else if arguments.contains("--simulate-patch-tab") {
-            initialTab = 2
-        } else if arguments.contains("--simulate-cleaner-tab") {
-            initialTab = 3
-        } else if arguments.contains("--simulate-wallpaper-tab") {
-            initialTab = 4
-        } else {
-            initialTab = 0
-        }
-        _tabNavigation = State(initialValue: AppTabNavigationState(selectedTab: initialTab))
-#else
-        _tabNavigation = State(initialValue: AppTabNavigationState())
-#endif
-    }
+    @State private var selectedTab = 0
+    
+    // Colores de la nueva interfaz
+    let bgDark = Color(red: 0.08, green: 0.08, blue: 0.10)
+    let cardDark = Color(red: 0.12, green: 0.12, blue: 0.14)
+    let iconBg = Color(red: 0.25, green: 0.12, blue: 0.15)
+    let iconRed = Color(red: 0.90, green: 0.30, blue: 0.40)
+    let brightYellow = Color(red: 1.0, green: 0.88, blue: 0.20)
 
     var body: some View {
-        Group {
-            if horizontalSizeClass == .regular {
-                regularLayout
-            } else {
-                compactLayout
-            }
-        }
-        .tint(AppTheme.accent)
-        .imageScale(.small)
-        .onChange(of: patchDraftCoordinator.request?.id) { requestID in
-            if requestID != nil { tabNavigation.select(AppSection.patches.rawValue) }
-        }
-        .onChange(of: patchDraftCoordinator.importRequest?.id) { requestID in
-            if requestID != nil { tabNavigation.select(AppSection.patches.rawValue) }
-        }
-        .onChange(of: cleanerEnabled) { _ in
-            tabNavigation.reconcileSelection(with: featureVisibility)
-        }
-        .onChange(of: wallpapersEnabled) { _ in
-            tabNavigation.reconcileSelection(with: featureVisibility)
-        }
-    }
+        ZStack {
+            bgDark.ignoresSafeArea()
 
-    private var compactLayout: some View {
-        TabView(selection: tabSelection) {
-            ForEach(featureVisibility.visibleSections) { section in
-                sectionContent(section)
-                    .tabItem {
-                        CompactTabLabel(
-                            title: language.text(section.titleKey),
-                            systemImage: section.systemImage
-                        )
-                    }
-                    .tag(section.rawValue)
-            }
-        }
-    }
+            VStack(spacing: 20) {
+                // Header espacio
+                Spacer().frame(height: 10)
 
-    private var regularLayout: some View {
-        NavigationSplitView {
-            List {
-                ForEach(featureVisibility.visibleSections) { section in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.18)) {
-                            tabNavigation.select(section.rawValue)
-                        }
-                    } label: {
-                        Label(language.text(section.titleKey), systemImage: section.systemImage)
-                            .fontWeight(section.rawValue == tabNavigation.selectedTab ? .semibold : .regular)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+                // Selector Superior (AIM / VISUAL)
+                HStack(spacing: 12) {
+                    Button(action: { selectedTab = 0 }) {
+                        Text("AIM")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(selectedTab == 0 ? brightYellow : cardDark)
+                            .cornerRadius(12)
                     }
-                    .buttonStyle(.plain)
-                    .listRowBackground(
-                        section.rawValue == tabNavigation.selectedTab
-                            ? AppTheme.accent.opacity(0.14)
-                            : Color.clear
-                    )
-                    .accessibilityAddTraits(
-                        section.rawValue == tabNavigation.selectedTab ? .isSelected : []
-                    )
+
+                    Button(action: { selectedTab = 1 }) {
+                        Text("VISUAL")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(selectedTab == 1 ? .black : .white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(selectedTab == 1 ? brightYellow : cardDark)
+                            .cornerRadius(12)
+                    }
                 }
-            }
-            .navigationTitle("3105")
-            .navigationSplitViewColumnWidth(min: 210, ideal: 240, max: 300)
-        } detail: {
-            sectionContent(AppSection(rawValue: tabNavigation.selectedTab) ?? .home)
-                .id(tabNavigation.selectedTab)
-        }
-        .navigationSplitViewStyle(.balanced)
-    }
+                .padding(.horizontal)
 
-    @ViewBuilder
-    private func sectionContent(_ section: AppSection) -> some View {
-        switch section {
-        case .home:
-            DashboardView(
-                cleanerEnabled: $cleanerEnabled,
-                wallpapersEnabled: $wallpapersEnabled
-            )
-        case .files:
-            AppDataBrowserView(
-                tabSession: filesTabSession
-            )
-        case .patches:
-            PatchProjectsView()
-        case .cleaner:
-            CleanerView()
-        case .wallpapers:
-            WallpaperLabView()
-        }
-    }
-
-    private var tabSelection: Binding<Int> {
-        Binding(
-            get: { tabNavigation.selectedTab },
-            set: { tabNavigation.select($0) }
-        )
-    }
-
-    private var filesTabSession: Binding<FilesTabSession> {
-        Binding(
-            get: { tabNavigation.filesTabs },
-            set: { tabNavigation.setFilesTabs($0) }
-        )
-    }
-
-    private var featureVisibility: FeatureVisibility {
-        FeatureVisibility(
-            cleanerEnabled: cleanerEnabled,
-            wallpapersEnabled: wallpapersEnabled
-        )
-    }
-}
-
-private struct CompactTabLabel: View {
-    let title: String
-    let systemImage: String
-
-    @ViewBuilder
-    var body: some View {
-        if let image = UIImage(
-            systemName: systemImage,
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .medium)
-        )?.withRenderingMode(.alwaysTemplate) {
-            Image(uiImage: image)
-        } else {
-            Image(systemName: systemImage)
-                .font(.system(size: 17, weight: .medium))
-        }
-        Text(title)
-    }
-}
-
-private extension AppSection {
-    var titleKey: String {
-        switch self {
-        case .home: return "tab.home"
-        case .files: return "tab.files"
-        case .patches: return "tab.patches"
-        case .cleaner: return "tab.cleaner"
-        case .wallpapers: return "tab.wallpapers"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .home: return "house.fill"
-        case .files: return "folder.fill"
-        case .patches: return "shippingbox.fill"
-        case .cleaner: return "sparkles"
-        case .wallpapers: return "photo.on.rectangle.angled.fill"
-        }
-    }
-}
-
-private struct DashboardView: View {
-    @Environment(\.appLanguage) private var language
-    @EnvironmentObject private var appState: AppState
-    @State private var showSettings = false
-    @State private var showLogs = false
-    @Binding var cleanerEnabled: Bool
-    @Binding var wallpapersEnabled: Bool
-
-    var body: some View {
-        NavigationStack {
-            List {
-                deviceSection
-                featuresSection
-                signingSection
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .tint(AppTheme.accent)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showLogs = true } label: {
-                        Image(systemName: "apple.terminal")
-                    }
-                    .accessibilityLabel(language.text("accessibility.open_logs"))
+                // Lista de Botones con Icono
+                VStack(spacing: 14) {
+                    MenuRowButton(title: "Opción Pecho", iconName: "scope", cardBg: cardDark, iconBg: iconBg, iconColor: iconRed)
+                    MenuRowButton(title: "Opción Cuello", iconName: "person.fill", cardBg: cardDark, iconBg: iconBg, iconColor: iconRed)
+                    MenuRowButton(title: "Opción Drag", iconName: "hand.tap.fill", cardBg: cardDark, iconBg: iconBg, iconColor: iconRed)
+                    MenuRowButton(title: "Opción Cabeza", iconName: "target", cardBg: cardDark, iconBg: iconBg, iconColor: iconRed)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showSettings = true } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    .accessibilityLabel(language.text("accessibility.open_settings"))
-                }
-            }
-            .sheet(isPresented: $showSettings) { SettingsView() }
-            .sheet(isPresented: $showLogs) { LogView() }
-        }
-    }
+                .padding(.horizontal)
 
-    private var featuresSection: some View {
-        Section {
-            Toggle(isOn: $cleanerEnabled) {
-                Label(language.text("tab.cleaner"), systemImage: "sparkles")
-            }
-            Toggle(isOn: $wallpapersEnabled) {
-                Label(language.text("tab.wallpapers"), systemImage: "photo.on.rectangle.angled")
-            }
-        } header: {
-            Text(language.text("dashboard.features"))
-        } footer: {
-            Text(language.text("dashboard.features_footer"))
-        }
-    }
-
-    private var signingSection: some View {
-        Section {
-            Label {
-                Text(language.text("dashboard.enterprise_signing"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } icon: {
-                Image(systemName: "checkmark.seal")
-                    .foregroundStyle(AppTheme.accent)
-            }
-            .padding(.vertical, 4)
-        } header: {
-            Text(language.text("dashboard.installation"))
-        }
-    }
-
-    private var deviceSection: some View {
-        Section {
-            LabeledContent(language.text("dashboard.hardware_model")) {
-                Text(AppInfo.displayMachineName)
-                    .font(.body.monospaced())
-            }
-            LabeledContent(language.text("settings.ios_version")) {
-                Text("\(AppInfo.osVersion) (\(AppInfo.osBuild))")
-                    .font(.body.monospaced())
-            }
-            HStack {
-                Text(language.text("settings.compatibility"))
                 Spacer()
-                Label(
-                    language.text(appState.isSupported ? "settings.supported" : "settings.unsupported"),
-                    systemImage: appState.isSupported ? "checkmark.circle.fill" : "xmark.circle.fill"
-                )
-                .foregroundStyle(appState.isSupported ? Color.green : Color.red)
+
+                // Botón Acción Principal Inferior
+                Button(action: {
+                    // Acción al presionar
+                }) {
+                    Text("ACCIONAR")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(brightYellow)
+                        .cornerRadius(16)
+                        .shadow(color: brightYellow.opacity(0.3), radius: 8, x: 0, y: 0)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 20)
             }
-        } header: {
-            Text(language.text("common.device"))
-        } footer: {
-            Text(language.text("settings.supported_range_summary"))
         }
+        .preferredColorScheme(.dark)
+    }
+}
+
+// Componente para la fila de botón con icono cuadrado
+struct MenuRowButton: View {
+    let title: String
+    let iconName: String
+    let cardBg: Color
+    let iconBg: Color
+    let iconColor: Color
+
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(iconBg)
+                    .frame(width: 44, height: 44)
+                Image(systemName: iconName)
+                    .foregroundColor(iconColor)
+                    .font(.system(size: 18, weight: .bold))
+            }
+
+            Text(title)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white)
+
+            Spacer()
+        }
+        .padding(10)
+        .background(cardBg)
+        .cornerRadius(14)
     }
 }
