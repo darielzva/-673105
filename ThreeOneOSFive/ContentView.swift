@@ -23,19 +23,18 @@ struct ContentView: View {
     @State private var keyInput: String = ""
     @State private var loginError: String = ""
     
-    // Lista global de Keys gestionadas por el Administrador
+    // Lista global de Keys
     @State private var activeKeys: [GeneratedKey] = [
         GeneratedKey(code: "DEMO-1DAY", durationDays: 1, creationDate: Date()),
         GeneratedKey(code: "DEMO-7DAYS", durationDays: 7, creationDate: Date())
     ]
     
-    // Estado del Creador de Keys (Solo Admin)
+    // Estado Panel Admin
     @State private var selectedDuration: Int = 1
     @State private var newlyGeneratedKey: String = ""
     @State private var showAdminPanel: Bool = false
-    @State private var keyCopiedAlert: Bool = false
     
-    // Estados de la App Principal
+    // Estados de la App
     @State private var selectedTab: String = "AIM"
     @State private var selectedOption: String? = nil
     @State private var accentColor: Color = Color(red: 1.0, green: 0.85, blue: 0.15)
@@ -73,7 +72,6 @@ struct ContentView: View {
                     .padding(.bottom, 20)
                     
                     VStack(spacing: 16) {
-                        // Campo Usuario
                         VStack(alignment: .leading, spacing: 8) {
                             Text("USUARIO")
                                 .font(.system(size: 12, weight: .bold))
@@ -86,7 +84,6 @@ struct ContentView: View {
                                 .foregroundColor(.white)
                         }
                         
-                        // Campo Key / Pass Admin
                         VStack(alignment: .leading, spacing: 8) {
                             Text("KEY / CONTRASEÑA")
                                 .font(.system(size: 12, weight: .bold))
@@ -109,7 +106,6 @@ struct ContentView: View {
                             .padding(.horizontal)
                     }
                     
-                    // Botón Entrar
                     Button(action: validateAndLogin) {
                         Text("INGRESAR")
                             .font(.system(size: 18, weight: .heavy))
@@ -124,12 +120,10 @@ struct ContentView: View {
                     
                     Spacer()
                 }
-                .transition(.opacity)
             } else {
                 // MARK: - App Principal
                 VStack(spacing: 18) {
                     
-                    // Header de Bienvenida
                     HStack(spacing: 14) {
                         ZStack(alignment: .bottomTrailing) {
                             Circle()
@@ -165,7 +159,6 @@ struct ContentView: View {
                         
                         Spacer()
                         
-                        // Botón Panel Admin (Solo visible para el Admin)
                         if isAdmin {
                             Button(action: {
                                 withAnimation {
@@ -182,7 +175,6 @@ struct ContentView: View {
                             }
                         }
                         
-                        // Botón Ajustes Color
                         Button(action: {
                             withAnimation {
                                 showColorPicker.toggle()
@@ -204,7 +196,7 @@ struct ContentView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
                     
-                    // MARK: - PANEL EXCLUSIVO DEL ADMINISTRADOR
+                    // MARK: - PANEL DE ADMINISTRADOR
                     if isAdmin && showAdminPanel {
                         VStack(alignment: .leading, spacing: 14) {
                             HStack {
@@ -223,7 +215,6 @@ struct ContentView: View {
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(.white)
                             
-                            // Selector de Duración
                             HStack(spacing: 10) {
                                 DurationButton(title: "1 Día", days: 1, selectedDays: $selectedDuration)
                                 DurationButton(title: "7 Días", days: 7, selectedDays: $selectedDuration)
@@ -246,11 +237,6 @@ struct ContentView: View {
                                         .font(.system(size: 13, weight: .monospaced))
                                         .foregroundColor(.green)
                                     Spacer()
-                                    Button(keyCopiedAlert ? "¡Generada!" : "Lista") {
-                                        keyCopiedAlert = true
-                                    }
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(.purple)
                                 }
                                 .padding(8)
                                 .background(Color.black.opacity(0.4))
@@ -303,10 +289,8 @@ struct ContentView: View {
                         .cornerRadius(18)
                         .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.purple.opacity(0.5), lineWidth: 1))
                         .padding(.horizontal, 20)
-                        .transition(.move(edge: .top).combined(with: .opacity))
                     }
                     
-                    // Selector de Colores
                     if showColorPicker {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("COLOR DE TEMA")
@@ -330,10 +314,8 @@ struct ContentView: View {
                         .background(Color(red: 0.08, green: 0.08, blue: 0.10))
                         .cornerRadius(16)
                         .padding(.horizontal, 20)
-                        .transition(.move(edge: .top).combined(with: .opacity))
                     }
                     
-                    // Selector AIM / VISUAL
                     HStack(spacing: 0) {
                         TabButton(title: "AIM", isSelected: selectedTab == "AIM", accentColor: accentColor) {
                             selectedTab = "AIM"
@@ -346,7 +328,6 @@ struct ContentView: View {
                     .cornerRadius(16)
                     .padding(.horizontal, 20)
                     
-                    // Lista de Tarjetas
                     ScrollView {
                         VStack(spacing: 16) {
                             if selectedTab == "AIM" {
@@ -366,7 +347,6 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // Botón Principal INYECTAR
                     Button(action: executeInjection) {
                         HStack {
                             if isInjecting {
@@ -389,12 +369,10 @@ struct ContentView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 15)
                 }
-                .transition(.opacity)
             }
         }
     }
     
-    // MARK: - Lógica de Acceso y Gestión
     private func validateAndLogin() {
         let trimmedUser = usernameInput.trimmingCharacters(in: .whitespaces)
         let trimmedKey = keyInput.trimmingCharacters(in: .whitespaces)
@@ -404,7 +382,6 @@ struct ContentView: View {
             return
         }
         
-        // Validación de Administrador
         if trimmedKey == "Didier 2013" {
             isAdmin = true
             isLoggedIn = true
@@ -412,7 +389,6 @@ struct ContentView: View {
             return
         }
         
-        // Validación de Key de Usuario Normal
         if let foundKey = activeKeys.first(where: { $0.code == trimmedKey }) {
             if foundKey.isExpired {
                 loginError = "Esta Key ha caducado o fue revocada."
@@ -427,13 +403,16 @@ struct ContentView: View {
     }
     
     private func generateNewKey() {
-        let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        let randomString = String((0..<6).map { _ in characters.randomElement()! })
-        let randomCode = "KEY-" + randomString
-        let newKey = GeneratedKey(code: randomCode, durationDays: selectedDuration, creationDate: Date())
+        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        var result = "KEY-"
+        for _ in 0..<6 {
+            if let randomChar = letters.randomElement() {
+                result.append(randomChar)
+            }
+        }
+        let newKey = GeneratedKey(code: result, durationDays: selectedDuration, creationDate: Date())
         activeKeys.insert(newKey, at: 0)
-        newlyGeneratedKey = randomCode
-        keyCopiedAlert = false
+        newlyGeneratedKey = result
     }
     
     private func revokeKey(_ key: GeneratedKey) {
@@ -463,7 +442,6 @@ struct ContentView: View {
     }
 }
 
-// Botón selector de duración
 struct DurationButton: View {
     let title: String
     let days: Int
