@@ -1,25 +1,34 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Modelo de Key
-struct KeyItem: Identifiable {
-    let id = UUID()
+// MARK: - Modelo de Key Persistente
+struct KeyItem: Identifiable, Codable {
+    var id = UUID()
     let code: String
     let durationDays: Int
     let expirationDate: Date
+    
+    var isExpired: Bool {
+        return Date() > expirationDate
+    }
 }
 
 struct ContentView: View {
+    // Credenciales de Administrador
+    private let adminUsername: String = "darielzx"
+    private let adminPassword: String = "didierdariel2013"
+    
     // Estado de Sesión
     @State private var isLoggedIn: Bool = false
     @State private var usernameInput: String = ""
     @State private var keyInput: String = ""
     @State private var loginError: String = ""
+    @State private var isAdmin: Bool = false
     
     // Estados de la App Principal
     @State private var selectedTab: String = "AIM" // "AIM", "VISUAL", "KEYS"
     @State private var selectedOption: String? = "PECHO"
-    @State private var accentColor: Color = Color(red: 1.0, green: 0.85, blue: 0.15) // Amarillo Neón por defecto
+    @State private var accentColor: Color = Color(red: 1.0, green: 0.85, blue: 0.15) // Amarillo Neón
     @State private var showColorPicker: Bool = false
     
     // Estados del Gestor de Keys
@@ -37,7 +46,6 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            // Fondo oscuro para resaltar el brillo neón
             Color(red: 0.02, green: 0.02, blue: 0.03)
                 .ignoresSafeArea()
             
@@ -78,11 +86,11 @@ struct ContentView: View {
                         }
                         
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("KEY (LLAVE DE ACCESO)")
+                            Text("KEY / CONTRASEÑA")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(.gray)
                             
-                            SecureField("Ingresa tu Key", text: $keyInput)
+                            SecureField("Ingresa tu Key o Contraseña", text: $keyInput)
                                 .padding()
                                 .background(Color(red: 0.08, green: 0.08, blue: 0.10))
                                 .cornerRadius(14)
@@ -99,20 +107,11 @@ struct ContentView: View {
                         Text(loginError)
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                     }
                     
-                    Button(action: {
-                        if usernameInput.trimmingCharacters(in: .whitespaces).isEmpty {
-                            loginError = "Por favor ingresa un usuario."
-                        } else if keyInput.isEmpty {
-                            loginError = "Por favor ingresa tu Key."
-                        } else {
-                            loginError = ""
-                            withAnimation {
-                                isLoggedIn = true
-                            }
-                        }
-                    }) {
+                    Button(action: validateAndLogin) {
                         Text("INGRESAR")
                             .font(.system(size: 18, weight: .heavy))
                             .foregroundColor(.black)
@@ -128,14 +127,16 @@ struct ContentView: View {
                     Spacer()
                 }
                 .transition(.opacity)
+                .onAppear {
+                    loadKeysFromStorage()
+                }
             } else {
                 // MARK: - App Principal
                 VStack(spacing: 18) {
                     
-                    // MARK: - Header Modificado con Imagen Directa
+                    // Header
                     HStack(spacing: 14) {
                         ZStack(alignment: .bottomTrailing) {
-                            // Intenta cargar la imagen subida en la carpeta del proyecto
                             if let uiImage = UIImage(named: "IMG_4462.jpeg") {
                                 Image(uiImage: uiImage)
                                     .resizable()
@@ -148,7 +149,6 @@ struct ContentView: View {
                                     )
                                     .shadow(color: accentColor.opacity(0.5), radius: 6, x: 0, y: 0)
                             } else {
-                                // Respaldo estético si la imagen aún no está en la carpeta correcta
                                 Image(systemName: "person.crop.circle.fill")
                                     .resizable()
                                     .scaledToFit()
@@ -157,7 +157,6 @@ struct ContentView: View {
                                     .shadow(color: accentColor.opacity(0.5), radius: 6, x: 0, y: 0)
                             }
                             
-                            // Punto verde de estado activo
                             Circle()
                                 .fill(Color.green)
                                 .frame(width: 12, height: 12)
@@ -172,7 +171,7 @@ struct ContentView: View {
                                     .foregroundColor(.gray)
                                     .tracking(1)
                                 
-                                Text("• VIP")
+                                Text(isAdmin ? "• ADMIN" : "• VIP")
                                     .font(.system(size: 10, weight: .bold))
                                     .foregroundColor(accentColor)
                                     .shadow(color: accentColor.opacity(0.6), radius: 4, x: 0, y: 0)
@@ -238,7 +237,7 @@ struct ContentView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
                     
-                    // Pestañas Principales
+                    // Pestañas Principales (KEYS estrictamente reservado para Admin)
                     HStack(spacing: 10) {
                         GlowTabButton(title: "AIM", isSelected: selectedTab == "AIM", accentColor: accentColor) {
                             selectedTab = "AIM"
@@ -246,13 +245,16 @@ struct ContentView: View {
                         GlowTabButton(title: "VISUAL", isSelected: selectedTab == "VISUAL", accentColor: accentColor) {
                             selectedTab = "VISUAL"
                         }
-                        GlowTabButton(title: "KEYS", isSelected: selectedTab == "KEYS", accentColor: accentColor) {
-                            selectedTab = "KEYS"
+                        
+                        if isAdmin {
+                            GlowTabButton(title: "KEYS", isSelected: selectedTab == "KEYS", accentColor: accentColor) {
+                                selectedTab = "KEYS"
+                            }
                         }
                     }
                     .padding(.horizontal, 20)
                     
-                    // Contenido
+                    // Contenido de la pestaña activa
                     ScrollView {
                         VStack(spacing: 14) {
                             if selectedTab == "AIM" {
@@ -263,10 +265,10 @@ struct ContentView: View {
                             } else if selectedTab == "VISUAL" {
                                 GlowOptionCard(title: "Holo Personaje", iconName: "person.crop.square.fill", isSelected: false, accentColor: accentColor) {}
                                 GlowOptionCard(title: "Holo Armas", iconName: "cube.fill", isSelected: false, accentColor: accentColor) {}
-                            } else if selectedTab == "KEYS" {
+                            } else if selectedTab == "KEYS" && isAdmin {
                                 VStack(alignment: .leading, spacing: 20) {
                                     
-                                    // Crear Key
+                                    // Sección para Generar Key
                                     VStack(alignment: .leading, spacing: 14) {
                                         Text("GENERAR NUEVA KEY")
                                             .font(.system(size: 12, weight: .heavy))
@@ -316,7 +318,7 @@ struct ContentView: View {
                                     .background(Color(red: 0.06, green: 0.06, blue: 0.08))
                                     .cornerRadius(18)
                                     
-                                    // Lista Keys
+                                    // Lista de Keys Activas
                                     VStack(alignment: .leading, spacing: 12) {
                                         HStack {
                                             Text("KEYS ACTIVAS")
@@ -353,7 +355,7 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // Botones Inferiores
+                    // Botones Inferiores de Acción
                     if selectedTab != "KEYS" {
                         HStack(spacing: 12) {
                             Button(action: {}) {
@@ -392,7 +394,61 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Métodos para Keys
+    // MARK: - Lógica de Login Ajustada
+    private func validateAndLogin() {
+        let cleanUsername = usernameInput.trimmingCharacters(in: .whitespaces)
+        let cleanKey = keyInput.trimmingCharacters(in: .whitespaces)
+        
+        guard !cleanUsername.isEmpty else {
+            loginError = "Por favor ingresa un usuario."
+            return
+        }
+        
+        guard !cleanKey.isEmpty else {
+            loginError = "Por favor ingresa tu Key o contraseña."
+            return
+        }
+        
+        // Carga la lista más actualizada almacenada en UserDefaults
+        loadKeysFromStorage()
+        
+        // 1. Verificación para Administrador Exclusivo
+        if cleanUsername.lowercased() == adminUsername.lowercased() {
+            if cleanKey == adminPassword {
+                loginError = ""
+                isAdmin = true
+                withAnimation {
+                    isLoggedIn = true
+                    selectedTab = "AIM"
+                }
+                return
+            } else {
+                loginError = "Contraseña de Administrador incorrecta."
+                return
+            }
+        }
+        
+        // 2. Verificación Estricta para Usuarios / Clientes Normales
+        // Se busca la coincidencia exacta de la Key ingresada dentro de la lista de keys generadas
+        if let matchingKey = generatedKeys.first(where: { $0.code == cleanKey }) {
+            if matchingKey.isExpired {
+                loginError = "La Key ingresada ha expirado."
+                return
+            }
+            
+            loginError = ""
+            isAdmin = false // Desactiva privilegios de admin obligatoriamente
+            withAnimation {
+                isLoggedIn = true
+                selectedTab = "AIM" // Por defecto entra en AIM y no mostrará la pestaña KEYS
+            }
+        } else {
+            // Si la key no existe en la lista de generatedKeys, se deniega el acceso
+            loginError = "Key no válida o no registrada."
+        }
+    }
+    
+    // MARK: - Métodos de Persistencia de Keys
     private func createKey(days: Int) {
         let newCode = "KEY-" + String((0..<8).map { _ in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
         let expiration = Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date()
@@ -400,6 +456,7 @@ struct ContentView: View {
         
         withAnimation {
             generatedKeys.insert(newKey, at: 0)
+            saveKeysToStorage() // Guarda inmediatamente
             keyNotificationMessage = "¡Key creada y copiada!"
         }
         
@@ -413,6 +470,24 @@ struct ContentView: View {
     private func revokeKey(id: UUID) {
         withAnimation {
             generatedKeys.removeAll { $0.id == id }
+            saveKeysToStorage() // Guarda inmediatamente al eliminar
+        }
+    }
+    
+    private func saveKeysToStorage() {
+        if let encoded = try? JSONEncoder().encode(generatedKeys) {
+            UserDefaults.standard.set(encoded, forKey: "SAVED_KEYS_LIST")
+            UserDefaults.standard.synchronize() // Fuerza la escritura inmediata en el disco
+        }
+    }
+    
+    private func loadKeysFromStorage() {
+        if let data = UserDefaults.standard.data(forKey: "SAVED_KEYS_LIST"),
+           let decoded = try? JSONDecode().self == [KeyItem].self ? try? JSONDecoder().decode([KeyItem].self, from: data) : nil {
+            self.generatedKeys = decoded
+        } else if let data = UserDefaults.standard.data(forKey: "SAVED_KEYS_LIST"),
+                  let decoded = try? JSONDecoder().decode([KeyItem].self, from: data) {
+            self.generatedKeys = decoded
         }
     }
 }
@@ -438,7 +513,7 @@ struct GlowTabButton: View {
     }
 }
 
-// MARK: - Tarjeta de Opción con Icono Dinámico
+// MARK: - Tarjeta de Opción
 struct GlowOptionCard: View {
     let title: String
     let iconName: String
@@ -449,7 +524,6 @@ struct GlowOptionCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
-                // Contenedor del Icono que se adapta al Accent Color
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(accentColor.opacity(0.15))
@@ -467,7 +541,6 @@ struct GlowOptionCard: View {
                 
                 Spacer()
                 
-                // Toggle Custom
                 ZStack(alignment: isSelected ? .trailing : .leading) {
                     Capsule()
                         .fill(isSelected ? accentColor : Color(red: 0.20, green: 0.20, blue: 0.24))
@@ -537,7 +610,7 @@ struct KeyRowView: View {
                     
                     Text("• Expira: \(formattedDate(keyItem.expirationDate))")
                         .font(.system(size: 11))
-                        .foregroundColor(.gray)
+                        .foregroundColor(keyItem.isExpired ? .red : .gray)
                 }
             }
             
