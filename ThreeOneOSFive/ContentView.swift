@@ -409,7 +409,6 @@ struct ContentView: View {
             return
         }
         
-        // Carga la lista más actualizada almacenada en UserDefaults
         loadKeysFromStorage()
         
         // 1. Verificación para Administrador Exclusivo
@@ -429,7 +428,6 @@ struct ContentView: View {
         }
         
         // 2. Verificación Estricta para Usuarios / Clientes Normales
-        // Se busca la coincidencia exacta de la Key ingresada dentro de la lista de keys generadas
         if let matchingKey = generatedKeys.first(where: { $0.code == cleanKey }) {
             if matchingKey.isExpired {
                 loginError = "La Key ingresada ha expirado."
@@ -437,13 +435,12 @@ struct ContentView: View {
             }
             
             loginError = ""
-            isAdmin = false // Desactiva privilegios de admin obligatoriamente
+            isAdmin = false
             withAnimation {
                 isLoggedIn = true
-                selectedTab = "AIM" // Por defecto entra en AIM y no mostrará la pestaña KEYS
+                selectedTab = "AIM"
             }
         } else {
-            // Si la key no existe en la lista de generatedKeys, se deniega el acceso
             loginError = "Key no válida o no registrada."
         }
     }
@@ -456,7 +453,7 @@ struct ContentView: View {
         
         withAnimation {
             generatedKeys.insert(newKey, at: 0)
-            saveKeysToStorage() // Guarda inmediatamente
+            saveKeysToStorage()
             keyNotificationMessage = "¡Key creada y copiada!"
         }
         
@@ -470,23 +467,19 @@ struct ContentView: View {
     private func revokeKey(id: UUID) {
         withAnimation {
             generatedKeys.removeAll { $0.id == id }
-            saveKeysToStorage() // Guarda inmediatamente al eliminar
+            saveKeysToStorage()
         }
     }
     
     private func saveKeysToStorage() {
         if let encoded = try? JSONEncoder().encode(generatedKeys) {
             UserDefaults.standard.set(encoded, forKey: "SAVED_KEYS_LIST")
-            UserDefaults.standard.synchronize() // Fuerza la escritura inmediata en el disco
         }
     }
     
     private func loadKeysFromStorage() {
         if let data = UserDefaults.standard.data(forKey: "SAVED_KEYS_LIST"),
-           let decoded = try? JSONDecode().self == [KeyItem].self ? try? JSONDecoder().decode([KeyItem].self, from: data) : nil {
-            self.generatedKeys = decoded
-        } else if let data = UserDefaults.standard.data(forKey: "SAVED_KEYS_LIST"),
-                  let decoded = try? JSONDecoder().decode([KeyItem].self, from: data) {
+           let decoded = try? JSONDecoder().decode([KeyItem].self, from: data) {
             self.generatedKeys = decoded
         }
     }
