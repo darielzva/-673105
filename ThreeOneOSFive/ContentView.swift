@@ -44,7 +44,7 @@ struct ContentView: View {
                     .padding(.bottom, 20)
                     
                     VStack(spacing: 16) {
-                        // Campo de Usuario (Cualquier nombre)
+                        // Campo de Usuario
                         VStack(alignment: .leading, spacing: 8) {
                             Text("USUARIO")
                                 .font(.system(size: 12, weight: .bold))
@@ -81,7 +81,6 @@ struct ContentView: View {
                     
                     // Botón de Entrar
                     Button(action: {
-                        // Validación: Usuario cualquiera (no vacío) y Key requerida
                         if usernameInput.trimmingCharacters(in: .whitespaces).isEmpty {
                             loginError = "Por favor ingresa un usuario."
                         } else if keyInput.isEmpty {
@@ -109,33 +108,69 @@ struct ContentView: View {
                 .transition(.opacity)
             } else {
                 // MARK: - App Principal (Menú)
-                VStack(spacing: 20) {
-                    // Barra Superior
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Bienvenido,")
-                                .font(.system(size: 12))
-                                .foregroundColor(.gray)
+                VStack(spacing: 18) {
+                    
+                    // MARK: - Header de Bienvenida Mejorado
+                    HStack(spacing: 14) {
+                        // Avatar Circular con Inicial del Usuario
+                        ZStack(alignment: .bottomTrailing) {
+                            Circle()
+                                .fill(accentColor.opacity(0.2))
+                                .frame(width: 46, height: 46)
+                                .overlay(
+                                    Circle()
+                                        .stroke(accentColor, lineWidth: 1.5)
+                                )
+                            
+                            Text(String(usernameInput.prefix(1)).uppercased())
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(accentColor)
+                            
+                            // Punto de estado "En línea"
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 12, height: 12)
+                                .overlay(Circle().stroke(Color.black, lineWidth: 2))
+                        }
+                        
+                        // Información del Usuario
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                Text("BIENVENIDO")
+                                    .font(.system(size: 10, weight: .heavy))
+                                    .foregroundColor(.gray)
+                                    .tracking(1)
+                                
+                                Text("• VIP")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(accentColor)
+                            }
+                            
                             Text(usernameInput)
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.system(size: 17, weight: .bold))
                                 .foregroundColor(.white)
                         }
                         
                         Spacer()
                         
+                        // Botón Tuerca Ajustes
                         Button(action: {
                             withAnimation {
                                 showColorPicker.toggle()
                             }
                         }) {
                             Image(systemName: "gearshape.fill")
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundColor(.gray)
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.white)
                                 .padding(10)
-                                .background(Color(red: 0.10, green: 0.10, blue: 0.12))
+                                .background(Color(red: 0.12, green: 0.12, blue: 0.15))
                                 .clipShape(Circle())
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color(red: 0.08, green: 0.08, blue: 0.10))
+                    .cornerRadius(20)
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
                     
@@ -204,11 +239,11 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // Botón Accionar
+                    // MARK: - Botón Principal INYECTAR
                     Button(action: {
-                        // Acción al presionar
+                        // Acción de inyección
                     }) {
-                        Text("ACCIONAR")
+                        Text("INYECTAR")
                             .font(.system(size: 18, weight: .heavy))
                             .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
