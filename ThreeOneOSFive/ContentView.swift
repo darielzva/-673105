@@ -19,7 +19,7 @@ struct ContentView: View {
     // Estados de la App Principal
     @State private var selectedTab: String = "AIM" // "AIM", "VISUAL", "KEYS"
     @State private var selectedOption: String? = "PECHO"
-    @State private var accentColor: Color = Color(red: 1.0, green: 0.85, blue: 0.15) // Amarillo Neón
+    @State private var accentColor: Color = Color(red: 1.0, green: 0.85, blue: 0.15) // Amarillo Neón por defecto
     @State private var showColorPicker: Bool = false
     
     // Estados del Gestor de Keys
@@ -37,12 +37,12 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            // Fondo super oscuro para resaltar el brillo neón
+            // Fondo oscuro para resaltar el brillo neón
             Color(red: 0.02, green: 0.02, blue: 0.03)
                 .ignoresSafeArea()
             
             if !isLoggedIn {
-                // MARK: - Pantalla de Login con Glow
+                // MARK: - Pantalla de Login
                 VStack(spacing: 24) {
                     Spacer()
                     
@@ -50,7 +50,6 @@ struct ContentView: View {
                         Image(systemName: "shield.lock.fill")
                             .font(.system(size: 64))
                             .foregroundColor(accentColor)
-                            // Resplandor del icono
                             .shadow(color: accentColor.opacity(0.8), radius: 15, x: 0, y: 0)
                             .shadow(color: accentColor.opacity(0.4), radius: 30, x: 0, y: 0)
                         
@@ -61,7 +60,6 @@ struct ContentView: View {
                     .padding(.bottom, 20)
                     
                     VStack(spacing: 16) {
-                        // Campo de Usuario
                         VStack(alignment: .leading, spacing: 8) {
                             Text("USUARIO")
                                 .font(.system(size: 12, weight: .bold))
@@ -79,7 +77,6 @@ struct ContentView: View {
                                 .autocapitalization(.none)
                         }
                         
-                        // Campo de Key / Llave
                         VStack(alignment: .leading, spacing: 8) {
                             Text("KEY (LLAVE DE ACCESO)")
                                 .font(.system(size: 12, weight: .bold))
@@ -104,7 +101,6 @@ struct ContentView: View {
                             .foregroundColor(.red)
                     }
                     
-                    // Botón de Entrar
                     Button(action: {
                         if usernameInput.trimmingCharacters(in: .whitespaces).isEmpty {
                             loginError = "Por favor ingresa un usuario."
@@ -125,7 +121,6 @@ struct ContentView: View {
                             .background(accentColor)
                             .cornerRadius(27)
                     }
-                    // Doble capa de Glow Neón
                     .shadow(color: accentColor.opacity(0.7), radius: 12, x: 0, y: 0)
                     .shadow(color: accentColor.opacity(0.3), radius: 25, x: 0, y: 0)
                     .padding(.horizontal, 24)
@@ -137,7 +132,7 @@ struct ContentView: View {
                 // MARK: - App Principal
                 VStack(spacing: 18) {
                     
-                    // MARK: - Header con Brillo de Estado
+                    // MARK: - Header
                     HStack(spacing: 14) {
                         ZStack(alignment: .bottomTrailing) {
                             Circle()
@@ -153,7 +148,6 @@ struct ContentView: View {
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(accentColor)
                             
-                            // Punto verde con brillo
                             Circle()
                                 .fill(Color.green)
                                 .frame(width: 12, height: 12)
@@ -201,7 +195,7 @@ struct ContentView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
                     
-                    // Selector de Colores
+                    // Selector de Tema Neón
                     if showColorPicker {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("COLOR DE TEMA NEÓN")
@@ -234,7 +228,7 @@ struct ContentView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
                     
-                    // Selector AIM / VISUAL / KEYS
+                    // Pestañas Principales
                     HStack(spacing: 10) {
                         GlowTabButton(title: "AIM", isSelected: selectedTab == "AIM", accentColor: accentColor) {
                             selectedTab = "AIM"
@@ -248,7 +242,7 @@ struct ContentView: View {
                     }
                     .padding(.horizontal, 20)
                     
-                    // Contenido Dinámico
+                    // Contenido
                     ScrollView {
                         VStack(spacing: 14) {
                             if selectedTab == "AIM" {
@@ -260,10 +254,9 @@ struct ContentView: View {
                                 GlowOptionCard(title: "Holo Personaje", iconName: "person.crop.square.fill", isSelected: false, accentColor: accentColor) {}
                                 GlowOptionCard(title: "Holo Armas", iconName: "cube.fill", isSelected: false, accentColor: accentColor) {}
                             } else if selectedTab == "KEYS" {
-                                // MARK: - Administrador de Keys
                                 VStack(alignment: .leading, spacing: 20) {
                                     
-                                    // Generar Key
+                                    // Crear Key
                                     VStack(alignment: .leading, spacing: 14) {
                                         Text("GENERAR NUEVA KEY")
                                             .font(.system(size: 12, weight: .heavy))
@@ -313,7 +306,7 @@ struct ContentView: View {
                                     .background(Color(red: 0.06, green: 0.06, blue: 0.08))
                                     .cornerRadius(18)
                                     
-                                    // Lista de Keys Activas
+                                    // Lista Keys
                                     VStack(alignment: .leading, spacing: 12) {
                                         HStack {
                                             Text("KEYS ACTIVAS")
@@ -350,10 +343,9 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // MARK: - Botones INJECT y BYPASS estilo Neón
+                    // Botones Inferiores
                     if selectedTab != "KEYS" {
                         HStack(spacing: 12) {
-                            // Botón INJECT (Sólido con Glow)
                             Button(action: {}) {
                                 Text("INJECT")
                                     .font(.system(size: 16, weight: .heavy))
@@ -366,7 +358,6 @@ struct ContentView: View {
                             .shadow(color: accentColor.opacity(0.8), radius: 10, x: 0, y: 0)
                             .shadow(color: accentColor.opacity(0.3), radius: 20, x: 0, y: 0)
                             
-                            // Botón BYPASS (Borde con Glow)
                             Button(action: {}) {
                                 Text("BYPASS")
                                     .font(.system(size: 16, weight: .heavy))
@@ -391,7 +382,7 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Lógica de Keys
+    // MARK: - Métodos para Keys
     private func createKey(days: Int) {
         let newCode = "KEY-" + String((0..<8).map { _ in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
         let expiration = Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date()
@@ -416,7 +407,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Botón de Pestaña con Glow
+// MARK: - Componente de Pestaña
 struct GlowTabButton: View {
     let title: String
     let isSelected: Bool
@@ -437,7 +428,7 @@ struct GlowTabButton: View {
     }
 }
 
-// MARK: - Tarjeta de Opción con Borde y Glow Neón
+// MARK: - Tarjeta de Opción con Icono Dinámico
 struct GlowOptionCard: View {
     let title: String
     let iconName: String
@@ -448,14 +439,15 @@ struct GlowOptionCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
+                // Contenedor del Icono que se adapta al Accent Color
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(red: 0.16, green: 0.08, blue: 0.12))
+                        .fill(accentColor.opacity(0.15))
                         .frame(width: 46, height: 46)
                     
                     Image(systemName: iconName)
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(Color(red: 0.95, green: 0.3, blue: 0.45))
+                        .foregroundColor(accentColor)
                 }
                 .padding(.leading, 12)
                 
@@ -465,7 +457,7 @@ struct GlowOptionCard: View {
                 
                 Spacer()
                 
-                // Toggle estético imitando las capturas
+                // Toggle Custom
                 ZStack(alignment: isSelected ? .trailing : .leading) {
                     Capsule()
                         .fill(isSelected ? accentColor : Color(red: 0.20, green: 0.20, blue: 0.24))
@@ -514,7 +506,7 @@ struct QuickDaysButton: View {
     }
 }
 
-// MARK: - Fila de Key Activa con Resplandor
+// MARK: - Fila de Key
 struct KeyRowView: View {
     let keyItem: KeyItem
     let accentColor: Color
