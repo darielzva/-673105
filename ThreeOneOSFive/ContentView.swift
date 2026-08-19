@@ -239,24 +239,6 @@ struct ContentView: View {
                                 .background(Color(red: 0.10, green: 0.10, blue: 0.13))
                                 .clipShape(Circle())
                         }
-                        
-                        // Botón de Cerrar Sesión Añadido
-                        Button(action: {
-                            withAnimation {
-                                isLoggedIn = false
-                                isAdmin = false
-                                keyInput = ""
-                                loginError = ""
-                                showColorPicker = false
-                            }
-                        }) {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.red)
-                                .padding(10)
-                                .background(Color.red.opacity(0.15))
-                                .clipShape(Circle())
-                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -439,7 +421,61 @@ struct ContentView: View {
                         .padding(.vertical, 10)
                     }
                     
-                    Spacer()
+                    // MARK: - Barra Inferior con Botón INJECT, BYPASS y CERRAR SESIÓN
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            // Acción de Inyectar principal si lo requieres
+                        }) {
+                            Text("INJECT")
+                                .font(.system(size: 16, weight: .heavy))
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(accentColor)
+                                .cornerRadius(25)
+                        }
+                        .shadow(color: accentColor.opacity(0.5), radius: 8, x: 0, y: 0)
+                        
+                        Button(action: {
+                            // Acción de Bypass
+                        }) {
+                            Text("BYPASS")
+                                .font(.system(size: 16, weight: .heavy))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(Color(red: 0.08, green: 0.08, blue: 0.10))
+                                .cornerRadius(25)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 25)
+                                        .stroke(Color.cyan, lineWidth: 1.5)
+                                )
+                        }
+                        
+                        // Botón de Cerrar Sesión Integrado Abajo
+                        Button(action: {
+                            withAnimation {
+                                isLoggedIn = false
+                                isAdmin = false
+                                keyInput = ""
+                                loginError = ""
+                                showColorPicker = false
+                            }
+                        }) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.red)
+                                .frame(width: 50, height: 50)
+                                .background(Color.red.opacity(0.15))
+                                .cornerRadius(25)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 25)
+                                        .stroke(Color.red.opacity(0.4), lineWidth: 1)
+                                )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 15)
                 }
                 .transition(.opacity)
             }
@@ -670,7 +706,7 @@ struct QuickDaysButton: View {
     }
 }
 
-// MARK: - Fila de Key
+// MARK: - KeyRowView
 struct KeyRowView: View {
     let keyItem: KeyItem
     let accentColor: Color
