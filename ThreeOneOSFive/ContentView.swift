@@ -41,9 +41,6 @@ struct ContentView: View {
     @State private var keyNotificationMessage: String = ""
     
     // Estados para la inyección por archivos .3105
-    @State private var showInjectionAlert: Bool = false
-    @State private var pendingInjectionTitle: String = ""
-    @State private var pendingInjectionFileName: String = ""
     @State private var injectionSuccessMessage: String = ""
     
     let availableColors: [(name: String, color: Color)] = [
@@ -315,23 +312,23 @@ struct ContentView: View {
                         VStack(spacing: 14) {
                             if selectedTab == "AIM" {
                                 GlowOptionCard(title: "Aim Cabeza", iconName: "target", isSelected: selectedOption == "CABEZA", accentColor: accentColor) {
-                                    triggerInjectionFlow(title: "Aim Cabeza", fileName: "aimbot_cabeza.3105", optionKey: "CABEZA")
+                                    executeDirectInjection(fileName: "aimbot_cabeza.3105", optionKey: "CABEZA")
                                 }
                                 GlowOptionCard(title: "Aim Cuello", iconName: "person.fill", isSelected: selectedOption == "CUELLO", accentColor: accentColor) {
-                                    triggerInjectionFlow(title: "Aim Cuello", fileName: "aimbot_cuello.3105", optionKey: "CUELLO")
+                                    executeDirectInjection(fileName: "aimbot_cuello.3105", optionKey: "CUELLO")
                                 }
                                 GlowOptionCard(title: "Aim Pecho", iconName: "scope", isSelected: selectedOption == "PECHO", accentColor: accentColor) {
-                                    triggerInjectionFlow(title: "Aim Pecho", fileName: "aimbot_pecho.3105", optionKey: "PECHO")
+                                    executeDirectInjection(fileName: "aimbot_pecho.3105", optionKey: "PECHO")
                                 }
                                 GlowOptionCard(title: "Aim Drag", iconName: "hand.tap.fill", isSelected: selectedOption == "DRAG", accentColor: accentColor) {
-                                    triggerInjectionFlow(title: "Aim Drag", fileName: "aimbot_drag.3105", optionKey: "DRAG")
+                                    executeDirectInjection(fileName: "aimbot_drag.3105", optionKey: "DRAG")
                                 }
                             } else if selectedTab == "VISUAL" {
-                                GlowOptionCard(title: "Holo Personaje", iconName: "person.crop.square.fill", isSelected: false, accentColor: accentColor) {
-                                    triggerInjectionFlow(title: "Holo Personaje", fileName: "holo_personaje.3105", optionKey: "HOLO_PERS")
+                                GlowOptionCard(title: "Holo Personaje", iconName: "person.crop.square.fill", isSelected: selectedOption == "HOLO_PERS", accentColor: accentColor) {
+                                    executeDirectInjection(fileName: "holo_personaje.3105", optionKey: "HOLO_PERS")
                                 }
-                                GlowOptionCard(title: "Holo Armas", iconName: "cube.fill", isSelected: false, accentColor: accentColor) {
-                                    triggerInjectionFlow(title: "Holo Armas", fileName: "holo_armas.3105", optionKey: "HOLO_ARMAS")
+                                GlowOptionCard(title: "Holo Armas", iconName: "cube.fill", isSelected: selectedOption == "HOLO_ARMAS", accentColor: accentColor) {
+                                    executeDirectInjection(fileName: "holo_armas.3105", optionKey: "HOLO_ARMAS")
                                 }
                             } else if selectedTab == "KEYS" && isAdmin {
                                 VStack(alignment: .leading, spacing: 20) {
@@ -421,38 +418,44 @@ struct ContentView: View {
                         .padding(.vertical, 10)
                     }
                     
-                    // MARK: - Barra Inferior con Botón INJECT, BYPASS y CERRAR SESIÓN
-                    HStack(spacing: 12) {
+                    // MARK: - Barra Inferior con Estilo Uniforme
+                    HStack(spacing: 10) {
                         Button(action: {
-                            // Acción de Inyectar principal si lo requieres
+                            // Al hacer clic en INJECT muestra el mensaje flotante
+                            if let currentOption = selectedOption {
+                                let fileName = fileForOption(currentOption)
+                                executeDirectInjection(fileName: fileName, optionKey: currentOption)
+                            } else {
+                                executeDirectInjection(fileName: "aimbot_pecho.3105", optionKey: "PECHO")
+                            }
                         }) {
                             Text("INJECT")
-                                .font(.system(size: 16, weight: .heavy))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.black)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 50)
+                                .frame(height: 46)
                                 .background(accentColor)
-                                .cornerRadius(25)
+                                .cornerRadius(16)
                         }
-                        .shadow(color: accentColor.opacity(0.5), radius: 8, x: 0, y: 0)
+                        .shadow(color: accentColor.opacity(0.6), radius: 8, x: 0, y: 0)
                         
                         Button(action: {
                             // Acción de Bypass
                         }) {
                             Text("BYPASS")
-                                .font(.system(size: 16, weight: .heavy))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 50)
+                                .frame(height: 46)
                                 .background(Color(red: 0.08, green: 0.08, blue: 0.10))
-                                .cornerRadius(25)
+                                .cornerRadius(16)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 25)
+                                    RoundedRectangle(cornerRadius: 16)
                                         .stroke(Color.cyan, lineWidth: 1.5)
                                 )
                         }
                         
-                        // Botón de Cerrar Sesión Integrado Abajo
+                        // Botón de Cerrar Sesión con esquinas redondeadas rectangulares
                         Button(action: {
                             withAnimation {
                                 isLoggedIn = false
@@ -463,13 +466,13 @@ struct ContentView: View {
                             }
                         }) {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
-                                .font(.system(size: 18, weight: .bold))
+                                .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.red)
-                                .frame(width: 50, height: 50)
+                                .frame(width: 46, height: 46)
                                 .background(Color.red.opacity(0.15))
-                                .cornerRadius(25)
+                                .cornerRadius(16)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 25)
+                                    RoundedRectangle(cornerRadius: 16)
                                         .stroke(Color.red.opacity(0.4), lineWidth: 1)
                                 )
                         }
@@ -480,27 +483,10 @@ struct ContentView: View {
                 .transition(.opacity)
             }
         }
-        // Alerta de confirmación para inyectar la ruta del archivo .3105
-        .alert(isPresented: $showInjectionAlert) {
-            Alert(
-                title: Text("Inyección de Archivo"),
-                message: Text("¿Quieres inyectar \(pendingInjectionTitle)? (Se aplicará el archivo \(pendingInjectionFileName))"),
-                primaryButton: .default(Text("Sí")) {
-                    executeFileInjection(fileName: pendingInjectionFileName, optionKey: pendingInjectionTitle)
-                },
-                secondaryButton: .cancel(Text("No"))
-            )
-        }
     }
     
-    // MARK: - Lógica de Inyección Automática .3105
-    private func triggerInjectionFlow(title: String, fileName: String, optionKey: String) {
-        pendingInjectionTitle = title
-        pendingInjectionFileName = fileName
-        showInjectionAlert = true
-    }
-    
-    private func executeFileInjection(fileName: String, optionKey: String) {
+    // MARK: - Lógica de Inyección Directa (Sin Alerta)
+    private func executeDirectInjection(fileName: String, optionKey: String) {
         let targetDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
         let destinationPath = targetDirectory?.appendingPathComponent(fileName).path ?? "/Documents/\(fileName)"
         
@@ -517,6 +503,18 @@ struct ContentView: View {
             withAnimation {
                 injectionSuccessMessage = ""
             }
+        }
+    }
+    
+    private func fileForOption(_ option: String) -> String {
+        switch option {
+        case "CABEZA": return "aimbot_cabeza.3105"
+        case "CUELLO": return "aimbot_cuello.3105"
+        case "PECHO": return "aimbot_pecho.3105"
+        case "DRAG": return "aimbot_drag.3105"
+        case "HOLO_PERS": return "holo_personaje.3105"
+        case "HOLO_ARMAS": return "holo_armas.3105"
+        default: return "aimbot_pecho.3105"
         }
     }
     
