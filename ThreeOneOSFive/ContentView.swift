@@ -20,10 +20,14 @@ struct ContentView: View {
     
     // Estado de Sesión
     @State private var isLoggedIn: Bool = false
-    @State private var usernameInput: String = ""
+    @AppStorage("saved_username_input") private var usernameInput: String = ""
     @State private var keyInput: String = ""
     @State private var loginError: String = ""
     @State private var isAdmin: Bool = false
+    
+    // Estados adicionales para el login mejorado
+    @State private var showKeyText: Bool = false
+    @State private var isLoggingIn: Bool = false
     
     // Estados de la App Principal
     @State private var selectedTab: String = "AIM" // "AIM", "VISUAL", "KEYS"
@@ -56,7 +60,7 @@ struct ContentView: View {
                 .ignoresSafeArea()
             
             if !isLoggedIn {
-                // MARK: - Pantalla de Login
+                // MARK: - Pantalla de Login Mejorada
                 VStack(spacing: 24) {
                     Spacer()
                     
@@ -74,6 +78,7 @@ struct ContentView: View {
                     .padding(.bottom, 20)
                     
                     VStack(spacing: 16) {
+                        // Campo de Usuario
                         VStack(alignment: .leading, spacing: 8) {
                             Text("USUARIO")
                                 .font(.system(size: 12, weight: .bold))
@@ -91,20 +96,36 @@ struct ContentView: View {
                                 .autocapitalization(.none)
                         }
                         
+                        // Campo de Key con botón para ver/ocultar contraseña
                         VStack(alignment: .leading, spacing: 8) {
                             Text("KEY / CONTRASEÑA")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(.gray)
                             
-                            SecureField("Ingresa tu Key o Contraseña", text: $keyInput)
-                                .padding()
-                                .background(Color(red: 0.08, green: 0.08, blue: 0.10))
-                                .cornerRadius(14)
-                                .foregroundColor(.white)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                )
+                            HStack {
+                                if showKeyText {
+                                    TextField("Ingresa tu Key o Contraseña", text: $keyInput)
+                                        .foregroundColor(.white)
+                                } else {
+                                    SecureField("Ingresa tu Key o Contraseña", text: $keyInput)
+                                        .foregroundColor(.white)
+                                }
+                                
+                                Button(action: {
+                                    showKeyText.toggle()
+                                }) {
+                                    Image(systemName: showKeyText ? "eye.slash.fill" : "eye.fill")
+                                        .foregroundColor(.gray)
+                                        .padding(.trailing, 4)
+                                }
+                            }
+                            .padding()
+                            .background(Color(red: 0.08, green: 0.08, blue: 0.10))
+                            .cornerRadius(14)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            )
                         }
                     }
                     .padding(.horizontal, 24)
@@ -117,15 +138,30 @@ struct ContentView: View {
                             .padding(.horizontal, 24)
                     }
                     
-                    Button(action: validateAndLogin) {
-                        Text("INGRESAR")
-                            .font(.system(size: 18, weight: .heavy))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(accentColor)
-                            .cornerRadius(27)
+                    // Botón de Ingresar con Animación de Carga
+                    Button(action: {
+                        isLoggingIn = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            validateAndLogin()
+                            isLoggingIn = false
+                        }
+                    }) {
+                        ZStack {
+                            if isLoggingIn {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                            } else {
+                                Text("INGRESAR")
+                                    .font(.system(size: 18, weight: .heavy))
+                                    .foregroundColor(.black)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(accentColor)
+                        .cornerRadius(27)
                     }
+                    .disabled(isLoggingIn)
                     .shadow(color: accentColor.opacity(0.7), radius: 12, x: 0, y: 0)
                     .shadow(color: accentColor.opacity(0.3), radius: 25, x: 0, y: 0)
                     .padding(.horizontal, 24)
@@ -190,6 +226,7 @@ struct ContentView: View {
                         
                         Spacer()
                         
+                        // Botón de Configuración (Color Picker)
                         Button(action: {
                             withAnimation {
                                 showColorPicker.toggle()
@@ -200,6 +237,24 @@ struct ContentView: View {
                                 .foregroundColor(.white)
                                 .padding(10)
                                 .background(Color(red: 0.10, green: 0.10, blue: 0.13))
+                                .clipShape(Circle())
+                        }
+                        
+                        // Botón de Cerrar Sesión Añadido
+                        Button(action: {
+                            withAnimation {
+                                isLoggedIn = false
+                                isAdmin = false
+                                keyInput = ""
+                                loginError = ""
+                                showColorPicker = false
+                            }
+                        }) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.red)
+                                .padding(10)
+                                .background(Color.red.opacity(0.15))
                                 .clipShape(Circle())
                         }
                     }
@@ -410,11 +465,9 @@ struct ContentView: View {
     }
     
     private func executeFileInjection(fileName: String, optionKey: String) {
-        // Simulación de la copia de la ruta del archivo .3105 en el almacenamiento/dispositivo del usuario
         let targetDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
         let destinationPath = targetDirectory?.appendingPathComponent(fileName).path ?? "/Documents/\(fileName)"
         
-        // Simulando escritura del archivo de ruta .3105
         let dummyRouteContent = "PATH_ROUTE_3105://inject/\(fileName)"
         try? dummyRouteContent.write(toFile: destinationPath, atomically: true, encoding: .utf8)
         
