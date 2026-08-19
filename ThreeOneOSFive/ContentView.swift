@@ -307,105 +307,81 @@ struct ContentView: View {
                             .transition(.opacity)
                     }
                     
-// ... (Mantén todo el código anterior hasta la parte de "Contenido de la pestaña activa")
-
                     // Contenido de la pestaña activa
                     ScrollView {
                         VStack(spacing: 14) {
                             if selectedTab == "AIM" {
-                                // Ahora solo actualizan el estado 'selectedOption', sin inyectar
                                 GlowOptionCard(title: "Aim Cabeza", iconName: "target", isSelected: selectedOption == "CABEZA", accentColor: accentColor) {
-                                    selectedOption = "CABEZA"
+                                    executeDirectInjection(fileName: "aimbot_cabeza.3105", optionKey: "CABEZA")
                                 }
                                 GlowOptionCard(title: "Aim Cuello", iconName: "person.fill", isSelected: selectedOption == "CUELLO", accentColor: accentColor) {
-                                    selectedOption = "CUELLO"
+                                    executeDirectInjection(fileName: "aimbot_cuello.3105", optionKey: "CUELLO")
                                 }
                                 GlowOptionCard(title: "Aim Pecho", iconName: "scope", isSelected: selectedOption == "PECHO", accentColor: accentColor) {
-                                    selectedOption = "PECHO"
+                                    executeDirectInjection(fileName: "aimbot_pecho.3105", optionKey: "PECHO")
                                 }
                                 GlowOptionCard(title: "Aim Drag", iconName: "hand.tap.fill", isSelected: selectedOption == "DRAG", accentColor: accentColor) {
-                                    selectedOption = "DRAG"
+                                    executeDirectInjection(fileName: "aimbot_drag.3105", optionKey: "DRAG")
                                 }
                             } else if selectedTab == "VISUAL" {
                                 GlowOptionCard(title: "Holo Personaje", iconName: "person.crop.square.fill", isSelected: selectedOption == "HOLO_PERS", accentColor: accentColor) {
-                                    selectedOption = "HOLO_PERS"
+                                    executeDirectInjection(fileName: "holo_personaje.3105", optionKey: "HOLO_PERS")
                                 }
                                 GlowOptionCard(title: "Holo Armas", iconName: "cube.fill", isSelected: selectedOption == "HOLO_ARMAS", accentColor: accentColor) {
-                                    selectedOption = "HOLO_ARMAS"
+                                    executeDirectInjection(fileName: "holo_armas.3105", optionKey: "HOLO_ARMAS")
                                 }
-                            } 
-                            // ... (resto de pestañas igual)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                    }
-                    
-                    // MARK: - Barra Inferior (Único lugar donde ocurre la inyección)
-                    HStack(spacing: 10) {
-                        Button(action: {
-                            // Aquí se dispara la inyección y el mensaje solo al presionar este botón
-                            if let currentOption = selectedOption {
-                                let fileName = fileForOption(currentOption)
-                                executeDirectInjection(fileName: fileName, optionKey: currentOption)
-                            }
-                        }) {
-                            Text("INJECT")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 46)
-                                .background(accentColor)
-                                .cornerRadius(16)
-                        }
-                        .shadow(color: accentColor.opacity(0.6), radius: 8, x: 0, y: 0)
-                        
-                        Button(action: {
-                            // Acción de Bypass
-                        }) {
-                            Text("BYPASS")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 46)
-                                .background(Color(red: 0.08, green: 0.08, blue: 0.10))
-                                .cornerRadius(16)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.cyan, lineWidth: 1.5)
-                                )
-                        }
-                        
-                        Button(action: {
-                            withAnimation {
-                                isLoggedIn = false
-                                isAdmin = false
-                                keyInput = ""
-                                loginError = ""
-                                showColorPicker = false
-                            }
-                        }) {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.red)
-                                .frame(width: 46, height: 46)
-                                .background(Color.red.opacity(0.15))
-                                .cornerRadius(16)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.red.opacity(0.4), lineWidth: 1)
-                                )
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 15)
-                }
-                .transition(.opacity)
-            }
-        }
-    }
-    
-// ... (el resto de las funciones auxiliares como executeDirectInjection y fileForOption permanecen iguales)
-
+                            } else if selectedTab == "KEYS" && isAdmin {
+                                VStack(alignment: .leading, spacing: 20) {
+                                    
+                                    // Sección para Generar Key
+                                    VStack(alignment: .leading, spacing: 14) {
+                                        Text("GENERAR NUEVA KEY")
+                                            .font(.system(size: 12, weight: .heavy))
+                                            .foregroundColor(.gray)
+                                        
+                                        HStack(spacing: 8) {
+                                            QuickDaysButton(days: 1, accentColor: accentColor) { createKey(days: 1) }
+                                            QuickDaysButton(days: 5, accentColor: accentColor) { createKey(days: 5) }
+                                            QuickDaysButton(days: 7, accentColor: accentColor) { createKey(days: 7) }
+                                            QuickDaysButton(days: 30, accentColor: accentColor) { createKey(days: 30) }
+                                        }
+                                        
+                                        HStack(spacing: 10) {
+                                            TextField("Días personalizados", text: $customDaysInput)
+                                                .keyboardType(.numberPad)
+                                                .padding(.horizontal, 14)
+                                                .frame(height: 44)
+                                                .background(Color(red: 0.10, green: 0.10, blue: 0.13))
+                                                .cornerRadius(12)
+                                                .foregroundColor(.white)
+                                            
+                                            Button(action: {
+                                                if let days = Int(customDaysInput), days > 0 {
+                                                    createKey(days: days)
+                                                    customDaysInput = ""
+                                                }
+                                            }) {
+                                                Text("GENERAR")
+                                                    .font(.system(size: 13, weight: .bold))
+                                                    .foregroundColor(.black)
+                                                    .frame(height: 44)
+                                                    .padding(.horizontal, 16)
+                                                    .background(accentColor)
+                                                    .cornerRadius(12)
+                                            }
+                                            .shadow(color: accentColor.opacity(0.5), radius: 8, x: 0, y: 0)
+                                        }
+                                        
+                                        if !keyNotificationMessage.isEmpty {
+                                            Text(keyNotificationMessage)
+                                                .font(.system(size: 13, weight: .medium))
+                                                .foregroundColor(Color.green)
+                                                .shadow(color: Color.green.opacity(0.6), radius: 6, x: 0, y: 0)
+                                        }
+                                    }
+                                    .padding()
+                                    .background(Color(red: 0.06, green: 0.06, blue: 0.08))
+                                    .cornerRadius(18)
                                     
                                     // Lista de Keys Activas
                                     VStack(alignment: .leading, spacing: 12) {
