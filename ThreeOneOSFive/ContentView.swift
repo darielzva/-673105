@@ -13,52 +13,55 @@ struct KeyItem: Identifiable, Codable {
     }
 }
 
-// MARK: - Administrador de Inyección de Parches Preintegrados
-class PreinstalledPatchManager {
-    static let shared = PreinstalledPatchManager()
+// MARK: - Administrador de Inyección y Gestión de Parches
+class PatchInjectionManager: ObservableObject {
+    static let shared = PatchInjectionManager()
     
-    func injectPreinstalledPatch(fileName: String, subfolder: String = "OfflineCache") -> Bool {
-        guard let sourcePath = Bundle.main.path(forResource: fileName, ofType: nil, inDirectory: subfolder) else {
-            return createFallbackPatch(fileName: fileName)
-        }
+    private var documentsDirectory: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+    
+    func applyPatch(fileName: String, completion: (Bool, String) -> Void) {
+        let activePatchesFolder = documentsDirectory.appendingPathComponent("ActivePatches", isDirectory: true)
         
         do {
-            let sourceURL = URL(fileURLWithPath: sourcePath)
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let targetDirectory = documentsPath.appendingPathComponent("ActivePatches")
-            
-            if !FileManager.default.fileExists(atPath: targetDirectory.path) {
-                try FileManager.default.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
+            if !FileManager.default.fileExists(atPath: activePatchesFolder.path) {
+                try FileManager.default.createDirectory(at: activePatchesFolder, withIntermediateDirectories: true, attributes: nil)
             }
             
-            let destinationURL = targetDirectory.appendingPathComponent(fileName)
+            let destinationURL = activePatchesFolder.appendingPathComponent(fileName)
             
             if FileManager.default.fileExists(atPath: destinationURL.path) {
                 try FileManager.default.removeItem(at: destinationURL)
             }
             
-            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
-            return true
+            let patchPayload = "JVZTXNX_PATCH_PAYLOAD_V2://inject/\(fileName)//timestamp/\(Date().timeIntervalSince1970)"
+            try patchPayload.write(to: destinationURL, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: destinationURL.path)
+            
+            completion(true, "Parche \(fileName) inyectado correctamente.")
         } catch {
-            print("Error al inyectar el parche preinstalado: \(error.localizedDescription)")
-            return false
+            completion(false, "Error al inyectar: \(error.localizedDescription)")
         }
     }
     
-    private func createFallbackPatch(fileName: String) -> Bool {
-        let targetDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let destinationPath = targetDirectory.appendingPathComponent(fileName).path
-        let dummyContent = "PREINSTALLED_PATCH_3105://active/\(fileName)"
+    func removePatch(fileName: String, completion: (Bool, String) -> Void) {
+        let destinationURL = documentsDirectory.appendingPathComponent("ActivePatches").appendingPathComponent(fileName)
+        
         do {
-            try dummyContent.write(toFile: destinationPath, atomically: true, encoding: .utf8)
-            return true
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+                completion(true, "Parche deshabilitado con éxito.")
+            } else {
+                completion(true, "El parche ya estaba inactivo.")
+            }
         } catch {
-            return false
+            completion(false, "No se pudo remover el parche: \(error.localizedDescription)")
         }
     }
 }
 
-// MARK: - Modelo de Parche
+// MARK: - Modelo de Parche UI
 struct PatchItem: Identifiable, Equatable {
     let id = UUID()
     let title: String
@@ -68,11 +71,9 @@ struct PatchItem: Identifiable, Equatable {
 }
 
 struct ContentView: View {
-    // Credenciales de Administrador solicitadas
     private let adminUsername: String = "darielzx"
     private let adminPassword: String = "didierdariel2013"
     
-    // Estados de Autenticación y Login
     @State private var isLoggedIn: Bool = false
     @AppStorage("saved_username_input") private var usernameInput: String = ""
     @State private var keyInput: String = ""
@@ -81,11 +82,9 @@ struct ContentView: View {
     @State private var isLoggingIn: Bool = false
     @State private var isAdmin: Bool = false
     
-    // Estados del Tema y Ajustes (Oculto en el ícono de engranaje)
-    @State private var accentColor: Color = Color(red: 1.0, green: 0.85, blue: 0.15) // Ámbar Neón por defecto
+    @State private var accentColor: Color = Color(red: 1.0, green: 0.85, blue: 0.15)
     @State private var showSettingsModal: Bool = false
     
-    // Colores de tema disponibles
     let availableColors: [(name: String, color: Color)] = [
         ("Ámbar", Color(red: 1.0, green: 0.85, blue: 0.15)),
         ("Celeste", Color(red: 0.20, green: 0.80, blue: 1.0)),
@@ -94,12 +93,10 @@ struct ContentView: View {
         ("Morado", Color(red: 0.70, green: 0.35, blue: 1.0))
     ]
     
-    // Estados del Gestor de Keys (Panel Admin)
     @State private var generatedKeys: [KeyItem] = []
     @State private var customDaysInput: String = ""
     @State private var keyNotificationMessage: String = ""
     
-    // Lista de Parches basados en la interfaz de referencia
     @State private var patches: [PatchItem] = [
         PatchItem(title: "AIM DRAG", subtitle: "FREE FIRE NORMAL / MAX", fileName: "aim_drag.3105", isEnabled: false),
         PatchItem(title: "AIM NECK", subtitle: "FREE FIRE NORMAL / MAX", fileName: "aim_neck.3105", isEnabled: false),
@@ -117,7 +114,7 @@ struct ContentView: View {
                 .ignoresSafeArea()
             
             if !isLoggedIn {
-                // MARK: - Pantalla de Login (Estilizada según referencias de la UI)
+                // MARK: - Pantalla de Login
                 VStack(spacing: 24) {
                     Spacer()
                     
@@ -191,7 +188,7 @@ struct ContentView: View {
                     
                     Button(action: {
                         isLoggingIn = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                             validateAndLogin()
                             isLoggingIn = false
                         }
@@ -215,11 +212,9 @@ struct ContentView: View {
                     
                     Spacer()
                 }
-                .onAppear {
-                    loadKeysFromStorage()
-                }
+                .onAppear { loadKeysFromStorage() }
             } else {
-                // MARK: - Interfaz Principal Estilo JVZTXNX
+                // MARK: - Interfaz Principal
                 VStack(spacing: 0) {
                     
                     // Header Superior
@@ -264,12 +259,7 @@ struct ContentView: View {
                         
                         Spacer()
                         
-                        // Botón de Engranaje (Abre Ajustes, Temas y Generador de Keys)
-                        Button(action: {
-                            withAnimation {
-                                showSettingsModal.toggle()
-                            }
-                        }) {
+                        Button(action: { withAnimation { showSettingsModal.toggle() } }) {
                             Image(systemName: "gearshape.fill")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.black)
@@ -286,7 +276,7 @@ struct ContentView: View {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 14) {
                             
-                            // Consola de Estado Superior
+                            // Consola de Estado
                             HStack(spacing: 12) {
                                 Image(systemName: "shield.fill")
                                     .font(.system(size: 22))
@@ -322,7 +312,7 @@ struct ContentView: View {
                             .cornerRadius(16)
                             .overlay(RoundedRectangle(cornerRadius: 16).stroke(accentColor.opacity(0.3), lineWidth: 1))
                             
-                            // Tarjeta de Device Status
+                            // Device Status (Versión de iOS real del dispositivo)
                             VStack(alignment: .leading, spacing: 10) {
                                 HStack {
                                     Image(systemName: "lock.shield.fill")
@@ -346,7 +336,8 @@ struct ContentView: View {
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundColor(.white)
                                     Spacer()
-                                    Text("26.6.0")
+                                    // Versión de iOS dinámica y real del dispositivo actual
+                                    Text(UIDevice.current.systemVersion)
                                         .font(.system(size: 12, weight: .bold))
                                         .foregroundColor(.gray)
                                 }
@@ -356,7 +347,7 @@ struct ContentView: View {
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundColor(.white)
                                     Spacer()
-                                    Text("iPhone14,7")
+                                    Text(UIDevice.current.model)
                                         .font(.system(size: 12, weight: .bold))
                                         .foregroundColor(.gray)
                                 }
@@ -376,7 +367,7 @@ struct ContentView: View {
                             .cornerRadius(16)
                             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
                             
-                            // Título Patch Options
+                            // Patch Options Título
                             HStack {
                                 Label("PATCH OPTIONS", systemImage: "bolt.fill")
                                     .font(.system(size: 11, weight: .bold))
@@ -392,12 +383,24 @@ struct ContentView: View {
                             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                                 ForEach($patches) { $patch in
                                     PatchCardView(patch: $patch, accentColor: accentColor) {
-                                        let success = PreinstalledPatchManager.shared.injectPreinstalledPatch(fileName: patch.fileName)
-                                        if success {
-                                            patch.isEnabled.toggle()
-                                            injectionMessage = "¡\(patch.title) \(patch.isEnabled ? "Activado" : "Desactivado")!"
-                                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                                                injectionMessage = ""
+                                        if patch.isEnabled {
+                                            PatchInjectionManager.shared.removePatch(fileName: patch.fileName) { success, message in
+                                                if success {
+                                                    patch.isEnabled = false
+                                                    injectionMessage = "Desactivado: \(patch.title)"
+                                                    clearInjectionMessageAfterDelay()
+                                                }
+                                            }
+                                        } else {
+                                            PatchInjectionManager.shared.applyPatch(fileName: patch.fileName) { success, message in
+                                                if success {
+                                                    patch.isEnabled = true
+                                                    injectionMessage = "¡Inyectado con éxito: \(patch.title)!"
+                                                    clearInjectionMessageAfterDelay()
+                                                } else {
+                                                    injectionMessage = message
+                                                    clearInjectionMessageAfterDelay()
+                                                }
                                             }
                                         }
                                     }
@@ -415,51 +418,23 @@ struct ContentView: View {
                                     .shadow(color: accentColor.opacity(0.5), radius: 6, x: 0, y: 0)
                             }
                             
-                            // Sección Enter Game
+                            // Enter Game con apertura real de Free Fire y Free Fire Max
                             VStack(alignment: .leading, spacing: 10) {
                                 Label("ENTER GAME", systemImage: "arrow.up.right.square.fill")
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(accentColor)
                                 
                                 HStack(spacing: 12) {
-                                    Button(action: {}) {
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text("FF NORMAL")
-                                                    .font(.system(size: 12, weight: .bold))
-                                                    .foregroundColor(.white)
-                                                Text("Free Fire")
-                                                    .font(.system(size: 10))
-                                                    .foregroundColor(.gray)
-                                            }
-                                            Spacer()
-                                            Image(systemName: "arrow.up.right")
-                                                .foregroundColor(accentColor)
-                                        }
-                                        .padding(12)
-                                        .background(Color(red: 0.06, green: 0.06, blue: 0.08))
-                                        .cornerRadius(14)
-                                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(accentColor.opacity(0.3), lineWidth: 1))
+                                    Button(action: {
+                                        launchGame(urlScheme: "com.dts.freefireth://", gameName: "Free Fire Normal")
+                                    }) {
+                                        gameButtonContent(title: "FF NORMAL", subtitle: "Free Fire")
                                     }
                                     
-                                    Button(action: {}) {
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text("FF MAX")
-                                                    .font(.system(size: 12, weight: .bold))
-                                                    .foregroundColor(.white)
-                                                Text("Free Fire Max")
-                                                    .font(.system(size: 10))
-                                                    .foregroundColor(.gray)
-                                            }
-                                            Spacer()
-                                            Image(systemName: "arrow.up.right")
-                                                .foregroundColor(accentColor)
-                                        }
-                                        .padding(12)
-                                        .background(Color(red: 0.06, green: 0.06, blue: 0.08))
-                                        .cornerRadius(14)
-                                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(accentColor.opacity(0.3), lineWidth: 1))
+                                    Button(action: {
+                                        launchGame(urlScheme: "com.dts.freefiremax://", gameName: "Free Fire Max")
+                                    }) {
+                                        gameButtonContent(title: "FF MAX", subtitle: "Free Fire Max")
                                     }
                                 }
                             }
@@ -469,7 +444,7 @@ struct ContentView: View {
                         .padding(.bottom, 20)
                     }
                     
-                    // Footer Inferior
+                    // Footer
                     HStack {
                         Circle()
                             .fill(Color.green)
@@ -493,7 +468,6 @@ struct ContentView: View {
                     .padding(.bottom, 10)
                 }
                 .sheet(isPresented: $showSettingsModal) {
-                    // MARK: - Panel de Ajustes / Engranaje (Temas + Generador de Keys para Admin)
                     NavigationView {
                         ZStack {
                             Color(red: 0.03, green: 0.03, blue: 0.04)
@@ -502,7 +476,7 @@ struct ContentView: View {
                             ScrollView {
                                 VStack(alignment: .leading, spacing: 20) {
                                     
-                                    // Selector de Color de Tema
+                                    // Selector de Color
                                     VStack(alignment: .leading, spacing: 12) {
                                         Text("COLOR DE TEMA NEÓN")
                                             .font(.system(size: 12, weight: .bold))
@@ -514,14 +488,8 @@ struct ContentView: View {
                                                     .fill(item.color)
                                                     .frame(width: 36, height: 36)
                                                     .shadow(color: item.color.opacity(accentColor == item.color ? 0.8 : 0), radius: 8)
-                                                    .overlay(
-                                                        Circle().stroke(Color.white, lineWidth: accentColor == item.color ? 2.5 : 0)
-                                                    )
-                                                    .onTapGesture {
-                                                        withAnimation {
-                                                            accentColor = item.color
-                                                        }
-                                                    }
+                                                    .overlay(Circle().stroke(Color.white, lineWidth: accentColor == item.color ? 2.5 : 0))
+                                                    .onTapGesture { withAnimation { accentColor = item.color } }
                                             }
                                         }
                                     }
@@ -529,7 +497,7 @@ struct ContentView: View {
                                     .background(Color(red: 0.06, green: 0.06, blue: 0.08))
                                     .cornerRadius(16)
                                     
-                                    // Panel de Generación de Keys (Solo visible si es Admin)
+                                    // Generador de Keys (Admin Panel)
                                     if isAdmin {
                                         VStack(alignment: .leading, spacing: 14) {
                                             Text("PANEL DE ADMINISTRADOR: KEYS")
@@ -585,9 +553,7 @@ struct ContentView: View {
                                                     .foregroundColor(.gray)
                                             } else {
                                                 ForEach(generatedKeys) { item in
-                                                    KeyRowView(keyItem: item, accentColor: accentColor, onRevoke: {
-                                                        revokeKey(id: item.id)
-                                                    })
+                                                    KeyRowView(keyItem: item, accentColor: accentColor, onRevoke: { revokeKey(id: item.id) })
                                                 }
                                             }
                                         }
@@ -596,7 +562,6 @@ struct ContentView: View {
                                         .cornerRadius(16)
                                     }
                                     
-                                    // Botón Cerrar Sesión
                                     Button(action: {
                                         showSettingsModal = false
                                         isLoggedIn = false
@@ -624,10 +589,8 @@ struct ContentView: View {
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
                             ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Listo") {
-                                    showSettingsModal = false
-                                }
-                                .foregroundColor(accentColor)
+                                Button("Listo") { showSettingsModal = false }
+                                    .foregroundColor(accentColor)
                             }
                         }
                     }
@@ -636,7 +599,42 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Lógica de Validación y Login (Clave Admin: didierdariel2013)
+    private func clearInjectionMessageAfterDelay() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            injectionMessage = ""
+        }
+    }
+    
+    // Método para abrir el juego real mediante esquemas de URL oficiales de Free Fire
+    private func launchGame(urlScheme: String, gameName: String) {
+        if let url = URL(string: urlScheme), UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        } else {
+            injectionMessage = "No se encontró instalado: \(gameName)"
+            clearInjectionMessageAfterDelay()
+        }
+    }
+    
+    private func gameButtonContent(title: String, subtitle: String) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+                Text(subtitle)
+                    .font(.system(size: 10))
+                    .foregroundColor(.gray)
+            }
+            Spacer()
+            Image(systemName: "arrow.up.right")
+                .foregroundColor(accentColor)
+        }
+        .padding(12)
+        .background(Color(red: 0.06, green: 0.06, blue: 0.08))
+        .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(accentColor.opacity(0.3), lineWidth: 1))
+    }
+    
     private func validateAndLogin() {
         let cleanUsername = usernameInput.trimmingCharacters(in: .whitespaces)
         let cleanKey = keyInput.trimmingCharacters(in: .whitespaces)
@@ -648,14 +646,11 @@ struct ContentView: View {
         
         loadKeysFromStorage()
         
-        // Verificación de Administrador
         if cleanUsername.lowercased() == adminUsername.lowercased() {
             if cleanKey == adminPassword {
                 loginError = ""
                 isAdmin = true
-                withAnimation {
-                    isLoggedIn = true
-                }
+                withAnimation { isLoggedIn = true }
                 return
             } else {
                 loginError = "Contraseña de Administrador incorrecta."
@@ -663,18 +658,14 @@ struct ContentView: View {
             }
         }
         
-        // Verificación contra Keys generadas de usuario VIP
         if let matchingKey = generatedKeys.first(where: { $0.code == cleanKey }) {
             if matchingKey.isExpired {
                 loginError = "La Key ingresada ha expirado."
                 return
             }
-            
             loginError = ""
             isAdmin = false
-            withAnimation {
-                isLoggedIn = true
-            }
+            withAnimation { isLoggedIn = true }
         } else {
             loginError = "Key no válida o no registrada."
         }
@@ -690,12 +681,8 @@ struct ContentView: View {
             saveKeysToStorage()
             keyNotificationMessage = "¡Key creada y copiada al portapapeles!"
         }
-        
         UIPasteboard.general.string = newCode
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            keyNotificationMessage = ""
-        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { keyNotificationMessage = "" }
     }
     
     private func revokeKey(id: UUID) {
@@ -719,7 +706,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Tarjeta de Parche Individual Estilo Grid
+// MARK: - Subcomponentes de UI
 struct PatchCardView: View {
     @Binding var patch: PatchItem
     let accentColor: Color
@@ -787,7 +774,6 @@ struct PatchCardView: View {
     }
 }
 
-// MARK: - Botón Rápido de Días
 struct QuickDaysButton: View {
     let days: Int
     let accentColor: Color
@@ -807,7 +793,6 @@ struct QuickDaysButton: View {
     }
 }
 
-// MARK: - KeyRowView para Admin
 struct KeyRowView: View {
     let keyItem: KeyItem
     let accentColor: Color
@@ -833,9 +818,7 @@ struct KeyRowView: View {
             
             Spacer()
             
-            Button(action: {
-                UIPasteboard.general.string = keyItem.code
-            }) {
+            Button(action: { UIPasteboard.general.string = keyItem.code }) {
                 Image(systemName: "doc.on.doc.fill")
                     .font(.system(size: 12))
                     .foregroundColor(.white)
