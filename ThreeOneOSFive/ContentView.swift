@@ -13,7 +13,7 @@ struct KeyItem: Identifiable, Codable {
     }
 }
 
-// MARK: - Administrador de Inyección y Gestión de Parches
+// MARK: - Administrador de Inyección y Gestión de Parches (Offline Cache)
 class PatchInjectionManager: ObservableObject {
     static let shared = PatchInjectionManager()
     
@@ -21,42 +21,46 @@ class PatchInjectionManager: ObservableObject {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
     
+    // Carpeta física requerida: offline cache
+    private var offlineCacheFolder: URL {
+        documentsDirectory.appendingPathComponent("offline cache", isDirectory: true)
+    }
+    
     func applyPatch(fileName: String, completion: (Bool, String) -> Void) {
-        let activePatchesFolder = documentsDirectory.appendingPathComponent("ActivePatches", isDirectory: true)
-        
         do {
-            if !FileManager.default.fileExists(atPath: activePatchesFolder.path) {
-                try FileManager.default.createDirectory(at: activePatchesFolder, withIntermediateDirectories: true, attributes: nil)
+            if !FileManager.default.fileExists(atPath: offlineCacheFolder.path) {
+                try FileManager.default.createDirectory(at: offlineCacheFolder, withIntermediateDirectories: true, attributes: nil)
             }
             
-            let destinationURL = activePatchesFolder.appendingPathComponent(fileName)
-            
-            if FileManager.default.fileExists(atPath: destinationURL.path) {
-                try FileManager.default.removeItem(at: destinationURL)
+            // Limpiamos la carpeta primero para asegurar que SOLO exista un archivo inyectado a la vez
+            let existingFiles = try FileManager.default.contentsOfDirectory(at: offlineCacheFolder, includingPropertiesForKeys: nil)
+            for file in existingFiles {
+                try FileManager.default.removeItem(at: file)
             }
             
-            let patchPayload = "JVZTXNX_PATCH_PAYLOAD_V2://inject/\(fileName)//timestamp/\(Date().timeIntervalSince1970)"
+            let destinationURL = offlineCacheFolder.appendingPathComponent(fileName)
+            let patchPayload = "DARIELMODZ_OFFLINE_CACHE_PAYLOAD://inject/\(fileName)//timestamp/\(Date().timeIntervalSince1970)"
+            
             try patchPayload.write(to: destinationURL, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: destinationURL.path)
             
-            completion(true, "Parche \(fileName) inyectado correctamente.")
+            completion(true, "Parche \(fileName) inyectado en offline cache.")
         } catch {
             completion(false, "Error al inyectar: \(error.localizedDescription)")
         }
     }
     
-    func removePatch(fileName: String, completion: (Bool, String) -> Void) {
-        let destinationURL = documentsDirectory.appendingPathComponent("ActivePatches").appendingPathComponent(fileName)
-        
+    func removeAllPatches(completion: (Bool, String) -> Void) {
         do {
-            if FileManager.default.fileExists(atPath: destinationURL.path) {
-                try FileManager.default.removeItem(at: destinationURL)
-                completion(true, "Parche deshabilitado con éxito.")
-            } else {
-                completion(true, "El parche ya estaba inactivo.")
+            if FileManager.default.fileExists(atPath: offlineCacheFolder.path) {
+                let existingFiles = try FileManager.default.contentsOfDirectory(at: offlineCacheFolder, includingPropertiesForKeys: nil)
+                for file in existingFiles {
+                    try FileManager.default.removeItem(at: file)
+                }
             }
+            completion(true, "Parches removidos con éxito.")
         } catch {
-            completion(false, "No se pudo remover el parche: \(error.localizedDescription)")
+            completion(false, "Error al limpiar caché: \(error.localizedDescription)")
         }
     }
 }
@@ -99,7 +103,7 @@ struct ContentView: View {
     
     @State private var patches: [PatchItem] = [
         PatchItem(title: "AIM DRAG", subtitle: "FREE FIRE NORMAL / MAX", fileName: "aim_drag.3105", isEnabled: false),
-        PatchItem(title: "AIM NECK", subtitle: "FREE FIRE NORMAL / MAX", fileName: "aim_neck.3105", isEnabled: false),
+        PatchItem(title: "AIM NECK", subtitle: "FREE FIRE NORMAL / MAX", fileName: "neck.3105", isEnabled: false),
         PatchItem(title: "HSSLA", subtitle: "FREE FIRE NORMAL / MAX", fileName: "hssla.3105", isEnabled: false),
         PatchItem(title: "HSPESCOÇO SEM ANTENA", subtitle: "FREE FIRE NORMAL / MAX", fileName: "hspescoco.3105", isEnabled: false),
         PatchItem(title: "AIM BODY", subtitle: "FREE FIRE NORMAL / MAX", fileName: "aim_body.3105", isEnabled: false),
@@ -124,7 +128,7 @@ struct ContentView: View {
                             .foregroundColor(accentColor)
                             .shadow(color: accentColor.opacity(0.8), radius: 15, x: 0, y: 0)
                         
-                        Text("JVZTXNX")
+                        Text("DARIELMODZ")
                             .font(.system(size: 28, weight: .black))
                             .foregroundColor(.white)
                             .tracking(2)
@@ -237,7 +241,7 @@ struct ContentView: View {
                         
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 6) {
-                                Text("JVZTXNX")
+                                Text("DARIELMODZ")
                                     .font(.system(size: 18, weight: .black))
                                     .foregroundColor(.white)
                                     .tracking(1)
@@ -286,11 +290,11 @@ struct ContentView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
                                 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("SECURE PATCH CONSOLE")
+                                    Text("OFFLINE CACHE INJECTOR")
                                         .font(.system(size: 12, weight: .bold))
                                         .foregroundColor(.white)
                                     
-                                    Text("Choose a patch, activate it, then enter your game.")
+                                    Text("Select only one active patch before entering game.")
                                         .font(.system(size: 10))
                                         .foregroundColor(.gray)
                                 }
@@ -336,7 +340,6 @@ struct ContentView: View {
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundColor(.white)
                                     Spacer()
-                                    // Versión de iOS dinámica y real del dispositivo actual
                                     Text(UIDevice.current.systemVersion)
                                         .font(.system(size: 12, weight: .bold))
                                         .foregroundColor(.gray)
@@ -373,29 +376,34 @@ struct ContentView: View {
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(accentColor)
                                 Spacer()
-                                Text("SELECT TO ACTIVATE")
+                                Text("SELECT ONE EXCLUSIVE")
                                     .font(.system(size: 9, weight: .bold))
                                     .foregroundColor(.gray)
                             }
                             .padding(.top, 4)
                             
-                            // Cuadrícula de Parches
+                            // Cuadrícula de Parches (Exclusivos: al activar uno, se desactivan los demás)
                             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                                 ForEach($patches) { $patch in
                                     PatchCardView(patch: $patch, accentColor: accentColor) {
                                         if patch.isEnabled {
-                                            PatchInjectionManager.shared.removePatch(fileName: patch.fileName) { success, message in
-                                                if success {
-                                                    patch.isEnabled = false
-                                                    injectionMessage = "Desactivado: \(patch.title)"
-                                                    clearInjectionMessageAfterDelay()
-                                                }
+                                            // Si ya estaba activo, se apaga y limpia la carpeta
+                                            PatchInjectionManager.shared.removeAllPatches { success, message in
+                                                patch.isEnabled = false
+                                                injectionMessage = "Parche removido del caché."
+                                                clearInjectionMessageAfterDelay()
                                             }
                                         } else {
+                                            // Apagamos todos los demás visualmente
+                                            for index in 0..<patches.count {
+                                                patches[index].isEnabled = false
+                                            }
+                                            
+                                            // Inyectamos el seleccionado en 'offline cache'
                                             PatchInjectionManager.shared.applyPatch(fileName: patch.fileName) { success, message in
                                                 if success {
                                                     patch.isEnabled = true
-                                                    injectionMessage = "¡Inyectado con éxito: \(patch.title)!"
+                                                    injectionMessage = "¡Inyectado en offline cache: \(patch.fileName)!"
                                                     clearInjectionMessageAfterDelay()
                                                 } else {
                                                     injectionMessage = message
@@ -426,13 +434,13 @@ struct ContentView: View {
                                 
                                 HStack(spacing: 12) {
                                     Button(action: {
-                                        launchGame(urlScheme: "com.dts.freefireth://", gameName: "Free Fire Normal")
+                                        launchGame(urlSchemes: ["com.dts.freefireth://", "freefire://", "com.garena.msdk.freefire://"], gameName: "Free Fire Normal")
                                     }) {
                                         gameButtonContent(title: "FF NORMAL", subtitle: "Free Fire")
                                     }
                                     
                                     Button(action: {
-                                        launchGame(urlScheme: "com.dts.freefiremax://", gameName: "Free Fire Max")
+                                        launchGame(urlSchemes: ["com.dts.freefiremax://", "freefiremax://"], gameName: "Free Fire Max")
                                     }) {
                                         gameButtonContent(title: "FF MAX", subtitle: "Free Fire Max")
                                     }
@@ -456,7 +464,7 @@ struct ContentView: View {
                         
                         Spacer()
                         
-                        Text("HYPER REGEDIT • READY")
+                        Text("DARIELMODZ • OFFLINE CACHE")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(accentColor)
                     }
@@ -605,12 +613,19 @@ struct ContentView: View {
         }
     }
     
-    // Método para abrir el juego real mediante esquemas de URL oficiales de Free Fire
-    private func launchGame(urlScheme: String, gameName: String) {
-        if let url = URL(string: urlScheme), UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url, options: [:], completionHandler: nil)
-        } else {
-            injectionMessage = "No se encontró instalado: \(gameName)"
+    // Método mejorado para comprobar varios esquemas posibles del juego y abrirlo correctamente
+    private func launchGame(urlSchemes: [String], gameName: String) {
+        var opened = false
+        for scheme in urlSchemes {
+            if let url = URL(string: scheme), UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                opened = true
+                break
+            }
+        }
+        
+        if !opened {
+            injectionMessage = "No se pudo abrir \(gameName). Asegúrate de tenerlo instalado."
             clearInjectionMessageAfterDelay()
         }
     }
