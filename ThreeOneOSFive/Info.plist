@@ -68,6 +68,14 @@
             </dict>
         </dict>
     </array>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>com.dts.freefireth</string>
+        <string>com.dts.freefiremax</string>
+        <string>freefire</string>
+        <string>freefiremax</string>
+        <string>com.garena.msdk.freefire</string>
+    </array>
     <key>LSSupportsOpeningDocumentsInPlace</key>
     <true/>
     <key>UIFileSharingEnabled</key>
